@@ -4,3 +4,4 @@
 /.vs/
 *.pyproj
 *.sln
+TestResults/
