@@ -251,8 +251,8 @@ def downloadcomic(
     # Последовательно скачиваем страницы,
     # запоминаем, на какой странице необходимо начинать следующее скачивание
     last_success = first
-    for i in range(first, last):
-        if (result := download_comic_page(i, folder=folder)) and last_success == result:
+    for num in range(first, last):
+        if (result := download_comic_page(num, folder=folder)) and last_success == result:
             last_success = result + 1
     return last_success
 
