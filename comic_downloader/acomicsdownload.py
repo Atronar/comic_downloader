@@ -6,7 +6,7 @@ import argparse
 import os
 import sys
 import urllib.request as urllib
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, SoupStrainer
 
 def arg_parser():
     """Парсер аргументов командной строки
@@ -88,6 +88,39 @@ def make_safe_filename(filename: str) -> str:
         if c not in illegal_unprintable
     ).rstrip()
 
+def find_last(comic_name: str) -> int:
+    """Поиск номера следующей за последней доступной страницы комикса на сервере
+
+    Parameters
+    ----------
+    comic_name: str
+        Короткое имя комикса
+        Его можно найти в адресе, начинается с ~
+
+    Return
+    ------
+    int
+        Номер страницы, которую надо проверять для обновления
+
+        Если на сервере есть страницы с 1 по 10, но 11 ещё не вышла, то вернётся именно 11
+    """
+    # Ссылка на последнюю страницу есть на главной
+    mainpage = _comic_main_page_link(comic_name)
+    # На самой странице ищем ссылку, указывающую на чтение с конца
+    with urllib.urlopen(mainpage) as file:
+        bs_li = BeautifulSoup(
+            file.read(),
+            "lxml",
+            parse_only=SoupStrainer('li', 'read-menu-item-short')
+        )
+    # Внутри класса ссылки на начало, конец и спсок. Нужен конец
+    bs_a = bs_li.find_all('a')[1]
+    bs_href = bs_a.get('href')
+    # Вытаскиваем из ссылки номер последней существующей страницы
+    last = int(bs_href.split('/')[-1])
+    # ...и озвращаем следующую
+    return last + 1
+
 def writetxt(file, desc):
     """Запись текстового описания в файл"""
     for descr in desc:
@@ -142,19 +175,20 @@ def writefile(mainpage, num, description, imgtitle, folder):
                 writetxt(file, desc)
 
 def downloadacomic(
-    mainpage,
-    first=1,
-    last=False,
-    desc=False,
-    imgtitle=False,
-    folder=''
-):
+    comic_name: str,
+    first: int = 1,
+    last: int|None = None,
+    desc = False,
+    imgtitle = False,
+    folder: str|os.PathLike = '.'
+) -> int:
     """Скачивание заданных страниц комикса от first до last
 
     Parameters
     ----------
-    mainpage: 
-        ...
+    comic_name: str
+        Короткое имя комикса
+        Его можно найти в адресе, начинается с ~
         
     first: int
         Номер первой страницы, которую ещё не скачивали
@@ -175,21 +209,22 @@ def downloadacomic(
 
         Если на сервере есть страницы с 1 по 10, но 11 ещё не вышла, то вернётся именно 11
     """
-    with urllib.urlopen(mainpage) as file:
-        last_ = int(
-            BeautifulSoup(
-                file.read(),
-                "lxml"
-            ).find('a', 'read2')['href']
-            .split('/')[-1]
-        )
-    if last and last_ + 1>last:
-        last_=last-1
+    # Установка последней страницы при её отсутствии
+    if not last:
+        last = find_last(comic_name)
+
     if imgtitle:
         desc=imgtitle
-    for num in range(first, last_ + 1):
+        
+    mainpage = _comic_main_page_link(comic_name)
+    # Последовательно скачиваем страницы,
+    # запоминаем, на какой странице необходимо начинать следующее скачивание
+    last_success = first
+    for num in range(first, last):
         writefile(mainpage, num, desc, imgtitle, folder)
-    return last_ + 1
+        if (result := last_success) and last_success == result:
+            last_success = result + 1
+    return last_success
 
 if __name__ == '__main__':
     # Берём аргументы запуска
@@ -204,6 +239,7 @@ if __name__ == '__main__':
     else:
         imgtitle=False
     # Скачивание
-    r = downloadacomic(args.comic, args.first, args.last, desc, imgtitle, args.folder)
+    comic_short_name = args.comic.rsplit("/",1)[-1]
+    r = downloadacomic(comic_short_name, args.first, args.last, desc, imgtitle, args.folder)
     # Возвращаемое значение — номер новой нескачанной страницы
     sys.exit(r)
