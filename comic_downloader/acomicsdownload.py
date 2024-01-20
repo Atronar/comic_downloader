@@ -57,11 +57,26 @@ def arg_parser():
     )
     return parser
 
-def filenamefilter(value):
-    """Преобразование имени файла в безопасное"""
-    for char in '\/:*?"<>|':
-        value = value.replace(char, '.')
-    return value
+def make_safe_filename(filename: str) -> str:
+    """
+    # Преобразование имени файла в безопасное
+    # https://stackoverflow.com/questions/7406102/create-sane-safe-filename-from-any-unsafe-string
+    """
+    illegal_chars = "/\\?%*:|\"<>"
+    illegal_unprintable = {chr(c) for c in (*range(31), 127)}
+    reserved_words = {
+        'CON', 'CONIN$', 'CONOUT$', 'PRN', 'AUX', 'CLOCK$', 'NUL',
+        'COM0', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
+        'LPT0', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9',
+        'LST', 'KEYBD$', 'SCREEN$', '$IDLE$', 'CONFIG$'
+    }
+    if os.path.splitext(filename)[0].upper() in reserved_words: return f"__{filename}"
+    if set(filename)=={'.'}: return filename.replace('.', '\uff0e', 1)
+    return "".join(
+        chr(ord(c)+65248) if c in illegal_chars else c
+        for c in filename
+        if c not in illegal_unprintable
+    ).rstrip()
 
 def writetxt(file, desc):
     """Запись текстового описания в файл"""
@@ -102,10 +117,10 @@ def writefile(mainpage, num, description, imgtitle, folder):
     else:
         desc = False
 
-    urllib.urlretrieve(img, os.path.join(folder, f"{num} - {filenamefilter(title)}.jpg"))
+    urllib.urlretrieve(img, os.path.join(folder, f"{num} - {make_safe_filename(title)}.jpg"))
     if desc or imgtitle:
         with open(
-            os.path.join(folder, f"{num} - {filenamefilter(title)}.txt"),
+            os.path.join(folder, f"{num} - {make_safe_filename(title)}.txt"),
             "w",
             encoding="utf-8"
         ) as file:
