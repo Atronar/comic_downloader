@@ -10,8 +10,6 @@ def argParser():
     parser.add_argument('-folder',help='Директория сохранения',type=str,default='')
     return parser
 
-# Берём аргументы запуска
-args = argParser().parse_args()
 
 def findLast(i=1):
     while True:
@@ -34,5 +32,8 @@ def downloadcomic(first=1,last=False,folder=''):
     return last
 
 if __name__ == '__main__':
+    # Берём аргументы запуска
+    args = argParser().parse_args()
+
     r = downloadcomic(args.first,args.last,args.folder)
     exit(r);
