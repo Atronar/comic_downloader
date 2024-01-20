@@ -17,16 +17,67 @@ def _comic_filename(page):
     file_link = _comic_file_link(page)
     return file_link.rsplit("/",1)[-1]
 
-def findLast(i=1):
+def findLast(i=1, force_add_mode=False):
+    if not force_add_mode or i < 500:
+        return _findLast_mul(i)
+    return _findLast_add(i)
+                
+def _findLast_mul(i=1):
+    min_ = i
+    max_ = i
+    step = 1
+    find_max = True
+
+    def find_max_handler():
+        nonlocal min_, i, step, max_
+        min_ = i 
+        i += step
+        step *= 2
+        max_ = i
+        
+    def set_min_handler():
+        nonlocal min_, i, max_
+        min_ = i 
+        i = (min_ + max_)//2
+        
+    def set_max_handler():
+        nonlocal min_, i, max_
+        max_ = i
+        i = (min_ + max_)//2
+            
     while True:
         try:
-            num = f"{i:0>4}"
-            res = urllib.request.urlopen(f"http://www.collectedcurios.com/SA_{num}_small.jpg")
+            res = _findlast_check(i)
+            if res.getcode()==200:
+                if find_max:
+                    find_max_handler()
+                elif i - min_ > 0:
+                    set_min_handler()
+                else:
+                    return i+1
+        except urllib.error.HTTPError as e:
+            if e.code==404:
+                if find_max:
+                    find_max = False
+                    set_max_handler()
+                elif i - min_ > 0:
+                    set_max_handler()
+                else:
+                    return i
+                
+def _findLast_add(i=1):
+    while True:
+        try:
+            res = _findlast_check(i)
             if res.getcode()==200:
                 i+=1
         except urllib.error.HTTPError as e:
             if e.code==404:
                 return i
+
+def _findlast_check(i):
+    res = urllib.request.urlopen(_comic_file_link(i))
+    return res
 
 def downloadcomic(first=1,last=False,folder=''):
     if last==False:
