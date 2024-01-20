@@ -50,7 +50,7 @@ def _comic_file_link(page: int|str) -> str:
 def _comic_filename(page: int|str) -> str:
     """Получение имени файла страницы комикса"""
     file_link = _comic_file_link(page)
-    return file_link.rsplit("/",1)[-1]
+    return file_link.rsplit("/", 1)[-1]
 
 def _check_corrects_file(filepath: str|os.PathLike) -> bool:
     """Проверка файла на существование и корректность"""
