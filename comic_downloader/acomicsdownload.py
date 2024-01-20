@@ -4,7 +4,7 @@ import argparse
 import os
 
 # Чтение аргументов командной строки
-def argParser():
+def arg_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('comic',help='Ссылка на главную страницу комикса на acomics',type=str)
     parser.add_argument('first',nargs='?',help='Первый номер, число',type=int,default=1)
@@ -13,9 +13,6 @@ def argParser():
     parser.add_argument('-imgtitle',nargs='?',help='Сохранять ли title изображений в описаниях, True/False',type=bool,default=False,choices=[True,False])
     parser.add_argument('-folder',help='Директория сохранения',type=str,default='')
     return parser
-
-# Берём аргументы запуска
-args = argParser().parse_args()
 
 def filenamefilter(value):
     for c in '\/:*?"<>|':
@@ -79,6 +76,9 @@ def downloadacomic(mainpage,first=1,last=False,desc=False,imgtitle=False,folder=
     return last_+1
     
 if __name__ == '__main__':
+    # Берём аргументы запуска
+    args = arg_parser().parse_args()
+
     if args.desc=='True':
         desc=True
     else:
