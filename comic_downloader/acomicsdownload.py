@@ -57,6 +57,16 @@ def arg_parser():
     )
     return parser
 
+def _comic_main_page_link(short_name: str) -> str:
+    """Получение ссылки на главную страницу комикса по краткому имени"""
+    if not short_name.startswith("~"):
+        short_name = f"~{short_name}"
+    return f"https://acomics.ru/{short_name}"
+
+def _comic_file_page_link(short_name: str, page: int|str) -> str:
+    """Получение ссылки на страницу комикса"""
+    return f"{_comic_main_page_link(short_name)}/{page}"
+
 def make_safe_filename(filename: str) -> str:
     """
     # Преобразование имени файла в безопасное
