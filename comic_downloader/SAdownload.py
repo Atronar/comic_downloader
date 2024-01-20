@@ -8,8 +8,9 @@ import argparse
 def argParser():
     parser = argparse.ArgumentParser()
     parser.add_argument('first',nargs='?',help='Первый номер, число',type=int,default=1)
-    parser.add_argument('-last',help='Последний номер, число. Если больше возможного, то качается до последнего существующего.',type=int,default=False)
-    parser.add_argument('-folder',help='Директория сохранения',type=str,default='')
+    parser.add_argument('-last',help='Последний номер, число. Если больше возможного, то качается до последнего существующего.',type=int,default=None)
+    parser.add_argument('-folder',help='Директория сохранения',type=str,default='.')
+    parser.add_argument('-no-async',help='Отключение быстрого (асинхронного) скачивания',action='store_true')
     return parser
 
 def _comic_file_link(page):
@@ -92,7 +93,13 @@ def download_comic_page(page: int, folder: str|os.PathLike='.') -> int|None:
         return page
     return None
 
-def downloadcomic(first: int=1, last: int|None=None, folder: str|os.PathLike='.'):
+def downloadcomic(first: int=1, last: int|None=None, folder: str|os.PathLike='.', use_async: bool=True):
+    if use_async:
+        loop = asyncio.get_event_loop()
+        last_success = loop.run_until_complete(async_downloadcomic(first=first, last=last, folder=folder))
+        loop.close()
+        return last_success
+
     if not last:
         last = findLast(first)
     last_success = first
@@ -143,5 +150,10 @@ if __name__ == '__main__':
     # Берём аргументы запуска
     args = argParser().parse_args()
 
-    r = downloadcomic(args.first,args.last,args.folder)
+    r = downloadcomic(
+        first = args.first,
+        last = args.last,
+        folder = args.folder,
+        use_async = not args.no_async
+    )
     exit(r);
