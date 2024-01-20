@@ -79,20 +79,25 @@ def _findlast_check(i):
     res = urllib.request.urlopen(_comic_file_link(i))
     return res
 
-def download_comic_page(page, folder='.'):
+def download_comic_page(page: int, folder: str|os.PathLike='.') -> int|None:
     comic_filepath = os.path.join(folder, _comic_filename(page))
     if not os.path.exists(comic_filepath):
         urllib.request.urlretrieve(
             _comic_file_link(page),
             comic_filepath
         )
+    if os.path.exists(comic_filepath) and os.path.getsize(comic_filepath)>8:
+        return page
+    return None
 
-def downloadcomic(first=1, last=False, folder='.'):
-    if last==False:
+def downloadcomic(first: int=1, last: int|None=None, folder: str|os.PathLike='.'):
+    if not last:
         last = findLast(first)
+    last_success = first
     for i in range(first, last):
-        download_comic_page(i, folder=folder)
-    return last
+        if (result := download_comic_page(i, folder=folder)) and last_success==result:
+            last_success = result+1
+    return last_success
 
 if __name__ == '__main__':
     # Берём аргументы запуска
