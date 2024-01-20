@@ -79,13 +79,19 @@ def _findlast_check(i):
     res = urllib.request.urlopen(_comic_file_link(i))
     return res
 
+def download_comic_page(page,folder=''):
+    comic_filepath = os.path.join(folder, _comic_filename(page))
+    if not os.path.exists(comic_filepath):
+        urllib.request.urlretrieve(
+            _comic_file_link(page),
+            comic_filepath
+        )
+
 def downloadcomic(first=1,last=False,folder=''):
     if last==False:
         last = findLast(first)
     for i in range(first, last):
-        num = f"{i:0>4}"
-        if not os.path.exists(os.path.join(folder, f"SA_{num}_small.jpg")):
-            urllib.request.urlretrieve(f"http://www.collectedcurios.com/SA_{num}_small.jpg",os.path.join(folder, f"SA_{num}_small.jpg"))
+        download_comic_page(i, folder=folder)
     return last
 
 if __name__ == '__main__':
