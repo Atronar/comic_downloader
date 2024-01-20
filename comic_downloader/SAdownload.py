@@ -79,7 +79,7 @@ def _findlast_check(i):
     res = urllib.request.urlopen(_comic_file_link(i))
     return res
 
-def download_comic_page(page,folder=''):
+def download_comic_page(page, folder='.'):
     comic_filepath = os.path.join(folder, _comic_filename(page))
     if not os.path.exists(comic_filepath):
         urllib.request.urlretrieve(
@@ -87,7 +87,7 @@ def download_comic_page(page,folder=''):
             comic_filepath
         )
 
-def downloadcomic(first=1,last=False,folder=''):
+def downloadcomic(first=1, last=False, folder='.'):
     if last==False:
         last = findLast(first)
     for i in range(first, last):

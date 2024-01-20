@@ -1,5 +1,6 @@
 ﻿import unittest
 from comic_downloader import SAdownload
+import os
 
 class Test_test_SA(unittest.TestCase):
     def test_find_last(self):
@@ -17,6 +18,35 @@ class Test_test_SA(unittest.TestCase):
         a = SAdownload._comic_filename(47)
         print(a)
         self.assertEqual(a, "SA_0047_small.jpg")
+        
+    def test_download_single(self):
+        page = 47
+        filepath = os.path.join('TestResults', SAdownload._comic_filename(page))
+        try:
+            os.remove(filepath)
+        except FileNotFoundError:
+            pass
+        a = SAdownload.download_comic_page(page, 'TestResults')
+        self.assertTrue(os.path.exists(filepath))
+        self.assertGreater(os.path.getsize(filepath), 8)
+        
+    def test_download(self):
+        start_page = 147
+        for page in range(start_page, start_page+20):
+            filepath = os.path.join('TestResults', SAdownload._comic_filename(page))
+            try:
+                os.remove(filepath)
+            except FileNotFoundError:
+                pass
+            
+        a = SAdownload.downloadcomic(start_page, start_page+20, 'TestResults')
+        print(a)
+        self.assertEqual(a, start_page+20)
+
+        for page in range(start_page, start_page+20):
+            filepath = os.path.join('TestResults', SAdownload._comic_filename(page))
+            self.assertTrue(os.path.exists(filepath))
+            self.assertGreater(os.path.getsize(filepath), 8)
 
 if __name__ == '__main__':
     unittest.main()
