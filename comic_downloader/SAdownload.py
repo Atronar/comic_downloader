@@ -1,3 +1,5 @@
+import aiohttp
+import asyncio
 import urllib.request
 import os
 import argparse
@@ -97,6 +99,44 @@ def downloadcomic(first: int=1, last: int|None=None, folder: str|os.PathLike='.'
     for i in range(first, last):
         if (result := download_comic_page(i, folder=folder)) and last_success==result:
             last_success = result+1
+    return last_success
+
+async def _async_download_comic_page(session: aiohttp.ClientSession, page: int, folder: str|os.PathLike='.') -> int|None:
+    comic_filepath = os.path.join(folder, _comic_filename(page))
+    if not os.path.exists(comic_filepath):
+        async with session.get(_comic_file_link(page)) as resp:
+            with open(comic_filepath, 'wb') as f:
+                f.write(await resp.read())
+    if os.path.exists(comic_filepath) and os.path.getsize(comic_filepath)>8:
+        return page
+    return None
+
+async def async_downloadcomic(first: int=1, last: int|None=None, folder: str|os.PathLike='.'):
+    # Если последняя страница не указана, то узнаём её, собственно, номер
+    if not last:
+        last = findLast(first)
+        
+    # Скачивание
+    async with aiohttp.ClientSession() as session:
+        # Создание списка задач
+        tasks = [_async_download_comic_page(session, i, folder) for i in range(first, last)]
+        # Запуск задач
+        results = await asyncio.gather(*tasks)
+        # Чистка результатов
+        results: list[int] = sorted(filter(bool, results))
+        
+    # Возврат следующей к скачиванию страницы
+    if last-first==len(results):
+        # Длина списка результатов совпадает с количеством запрошенных страниц
+        return max(results)+1
+    # Результатов меньше запрошенного, вероятно есть нескачанное
+    # Ищем первую пропущенную страницу и возвращаем её 
+    last_success = first
+    for i in results:
+        if last_success==i:
+            last_success += 1
+        else:
+            return last_success
     return last_success
 
 if __name__ == '__main__':
