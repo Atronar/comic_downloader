@@ -10,6 +10,12 @@ def argParser():
     parser.add_argument('-folder',help='Директория сохранения',type=str,default='')
     return parser
 
+def _comic_file_link(page):
+    return f"http://www.collectedcurios.com/SA_{page:0>4}_small.jpg"
+
+def _comic_filename(page):
+    file_link = _comic_file_link(page)
+    return file_link.rsplit("/",1)[-1]
 
 def findLast(i=1):
     while True:
