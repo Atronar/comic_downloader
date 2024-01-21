@@ -83,6 +83,94 @@ def _check_corrects_file(filepath: str|os.PathLike) -> bool:
     """Проверка файла на существование и корректность"""
     return os.path.exists(filepath) and os.path.getsize(filepath) > 8
 
+def _comic_get_content_page(comic_name: str, page: int|str) -> BeautifulSoup:
+    """Получение html-контента, содержащего всю необходимую информцию"""
+    comic_page_link = _comic_file_page_link(comic_name, page)
+    with urllib.urlopen(comic_page_link) as file:
+        content_page = BeautifulSoup(
+            file.read(),
+            "lxml",
+            parse_only=SoupStrainer('div', 'common-content')
+        )
+    return content_page
+
+def _comic_file_link(content: Tag) -> str:
+    """Получение ссылки на файл страницы комикса на сервере"""
+    img = content.find("img", "issue")
+    if isinstance(img, Tag) and (src := img.attrs.get('src', None)):
+        return f"https://acomics.ru{src}"
+    else:
+        raise ValueError(content)
+
+def _comic_page_title(content: Tag) -> str:
+    """Получение заголовка страницы комикса"""
+    span = content.find("span", "title")
+    if span:
+        return span.get_text(strip=True).rstrip(".")
+    else:
+        raise ValueError(content)
+
+def _comic_page_description(
+    content: Tag,
+    is_write_description: bool = True,
+    is_write_img_description: bool = True
+) -> str|None:
+    """Получение описания страницы комикса
+
+    Parameters
+    ----------
+    content: Tag
+        html-тег, который может содержать другие теги и контент внутри
+
+    is_write_description: bool
+        Получать ли описание из соответствующего поля
+
+    is_write_img_description: bool
+        Получать ли всплывающий текст на изображении
+
+    Return
+    ------
+    str
+        Текст описания
+        Если is_write_description и is_write_img_description установлены в True,
+        то они разделяются пустыми строками и строкой с 5 дефисами
+
+    None
+        Если описания нет, возвращаетмя None
+    """
+    page_description: list[str] = []
+
+    # Достаём текст из всплывающего сообщения на самом изображении
+    if is_write_img_description:
+        img = content.find("img", "issue")
+
+        if not isinstance(img, Tag):
+            raise ValueError(content)
+
+        if img_description := img.attrs.get('title', None):
+            page_description.append(img_description)
+
+    # Достаём текст из поля описания
+    if is_write_description:
+        issue_description_text = content.find("section", "issue-description-text")
+
+        if isinstance(issue_description_text, Tag):
+            # Форматируем html-разметку в читаемый вид
+            description_list = issue_description_text.children
+            if description := html_to_text(description_list):
+                page_description.append(description)
+        elif isinstance(issue_description_text, str):
+            # Добавляем чистую строку
+            if description := issue_description_text.strip():
+                page_description.append(description)
+        else:
+            raise ValueError(content)
+
+    # Сводим текст
+    if page_description:
+        return "\n\n-----\n\n".join(page_description)
+    return None
+
 def make_safe_filename(filename: str) -> str:
     """
     # Преобразование имени файла в безопасное
