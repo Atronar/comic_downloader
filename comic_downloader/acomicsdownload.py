@@ -67,6 +67,20 @@ def _comic_file_page_link(short_name: str, page: int|str) -> str:
     """Получение ссылки на страницу комикса"""
     return f"{_comic_main_page_link(short_name)}/{page}"
 
+def _comic_filename(page: int|str, title: str|None=None, ext: str=".jpg") -> str:
+    """Получение имени файла страницы комикса"""
+    # Дописываем точку к расширению, если отсутствует
+    if ext and not ext.startswith("."):
+        ext = f".{ext}"
+
+    if title:
+        return make_safe_filename(f"{page} - {title}{ext}")
+    return make_safe_filename(f"{page}{ext}")
+
+def _check_corrects_file(filepath: str|os.PathLike) -> bool:
+    """Проверка файла на существование и корректность"""
+    return os.path.exists(filepath) and os.path.getsize(filepath) > 8
+
 def make_safe_filename(filename: str) -> str:
     """
     # Преобразование имени файла в безопасное
