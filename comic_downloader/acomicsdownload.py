@@ -3,10 +3,12 @@ https://acomics.ru
 """
 
 import argparse
+import io
 import os
 import sys
+from typing import Iterable
 import urllib.request as urllib
-from bs4 import BeautifulSoup, SoupStrainer, Tag
+from bs4 import BeautifulSoup, PageElement, SoupStrainer, Tag
 
 def arg_parser():
     """Парсер аргументов командной строки
@@ -102,6 +104,62 @@ def make_safe_filename(filename: str) -> str:
         if c not in illegal_unprintable
     ).rstrip()
 
+def html_to_text(elements_list: Iterable[PageElement]|Tag) -> str:
+    """Преобразование списка html-элементов страницы в более читаемый вид
+
+    Parameters
+    ----------
+    elements_list: Iterable[PageElement]
+        Список html-элементов: тегов, содержащихся в них строк
+        Также могут быть сами теги
+
+    Return
+    ------
+    str
+        Человекочитаемый текст без html-тегов
+
+        <a href=https://ссылка>Текст ссылки</a>
+        заменяются на
+        Текст ссылки (https://ссылка)
+
+        <img src=https://ссылка_на_картинку>
+        заменяются на
+        (# https://ссылка_на_картинку #)
+
+        <br> заменяется на перевод строки
+        <hr> заменяется на 5 дефисов и перевод строки
+    """
+    text = ""
+    for page_element in elements_list:
+        if isinstance(page_element, str):
+            text += page_element.strip()
+        elif isinstance(page_element, Tag):
+            if page_element.name in [
+                'div', 'span', 'p',
+                'em', 'strong',
+                'h3', 'h2', 'h1'
+            ]:
+                # Обрабатываем содержимое тега
+                text += html_to_text(page_element)
+            elif page_element.name == 'hr':
+                text += '-----\n'
+            elif page_element.name == 'br':
+                text += '\n'
+            elif page_element.name == 'a':
+                # Текст ссылки (https://ссылка)
+                text += (
+                    f"{html_to_text(page_element.children)} "
+                    f"({page_element.attrs.get('href', '')})"
+                )
+            elif page_element.name == 'img':
+                # (# https://ссылка_на_картинку #)
+                text += f"(# {page_element.attrs.get('src')} #)"
+            else:
+                raise ValueError(page_element)
+        else:
+            raise ValueError(page_element)
+    return text
+
 def find_last(comic_name: str) -> int:
     """Поиск номера следующей за последней доступной страницы комикса на сервере
 
@@ -135,22 +193,9 @@ def find_last(comic_name: str) -> int:
     # ...и возвращаем следующую
     return last + 1
 
-def writetxt(file, desc):
+def writetxt(file: io.TextIOBase, desc: Iterable[PageElement]|Tag):
     """Запись текстового описания в файл"""
-    for descr in desc:
-        if descr.name in ['p', 'div', 'em', 'strong', 'span', 'h3', 'h2', 'h1']:
-            writetxt(file, descr)
-        elif descr.name == 'hr':
-            file.write('-----\n')
-        elif descr.name == 'br':
-            file.write('\n')
-        elif descr.name == 'a':
-            writetxt(file, descr.contents)
-            file.write(f" ({descr['href']})")
-        elif descr.name == 'img':
-            file.write(f"(# {descr['src']} #)")
-        else:
-            file.write(f"{descr}")
+    file.write(html_to_text(desc))
 
 def writefile(mainpage, num, description, imgtitle, folder):
     """Скачивание страницы комикса"""
