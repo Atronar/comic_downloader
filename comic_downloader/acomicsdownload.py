@@ -7,6 +7,8 @@ import os
 import sys
 from typing import Iterable
 import urllib.request as urllib
+import asyncio
+import aiohttp
 from bs4 import BeautifulSoup, PageElement, SoupStrainer, Tag
 
 def arg_parser():
@@ -50,6 +52,11 @@ def arg_parser():
         help = 'Директория сохранения',
         type = str,
         default = '.'
+    )
+    parser.add_argument(
+        '-no-async',
+        help = 'Отключение быстрого (асинхронного) скачивания',
+        action = 'store_true'
     )
     return parser
 
@@ -369,9 +376,190 @@ def downloadcomic(
     last: int|None = None,
     is_write_description: bool = True,
     is_write_img_description: bool = True,
-    folder: str|os.PathLike = '.'
+    folder: str|os.PathLike = '.',
+    use_async: bool = True
 ) -> int:
     """Скачивание заданных страниц комикса от first до last
+
+    Parameters
+    ----------
+    comic_name: str
+        Короткое имя комикса
+        Его можно найти в адресе, начинается с ~
+
+    first: int
+        Номер первой страницы, которую ещё не скачивали
+
+    last: int | None
+        Номер последней страницы, до которой (не включительно) вести скачивание
+        Если страниц существует меньше, то скачиваться будут страницы до последней существующей
+        Если не указано, то скачиваться будут страницы до последней существующей
+
+    is_write_description: bool
+        Записывать ли описание в файл описания
+
+    is_write_img_description: bool
+        Записывать ли всплывающий текст на изображении в файл описания
+
+    folder: str | PathLike
+        Папка, в которую осуществляется скачивание
+
+    use_async: bool
+        Скачивание посредством асинхронной функции
+        вместо последовательного постраничного скачивания
+        По умолчанию включено
+
+    Return
+    ------
+    int
+        Номер первой недоступной страницы
+        При следующей проверке в аргумент first надо поместить именно это значение
+
+        Если на сервере есть страницы с 1 по 10, но 11 ещё не вышла, то вернётся именно 11
+    """
+    # Асинхронное скачивание
+    if use_async:
+        loop = asyncio.get_event_loop()
+        last_success = loop.run_until_complete(
+            async_downloadcomic(
+                comic_name,
+                first = first,
+                last = last,
+                is_write_description = is_write_description,
+                is_write_img_description = is_write_img_description,
+                folder = folder
+            )
+        )
+        loop.close()
+        return last_success
+
+    # Обычное скачивание
+    # Установка последней страницы при её отсутствии
+    if not last:
+        last = find_last(comic_name)
+    else:
+        last = min(last, find_last(comic_name))
+    # Последовательно скачиваем страницы,
+    # запоминаем, на какой странице необходимо начинать следующее скачивание
+    last_success = first
+    for num in range(first, last):
+        if (
+            (
+                result := download_comic_page(
+                    comic_name,
+                    num,
+                    is_write_description,
+                    is_write_img_description,
+                    folder
+                )
+            )
+            and last_success == result
+        ):
+            last_success = result + 1
+    return last_success
+
+async def _async_download_comic_page(
+    comic_name: str,
+    page: int,
+    is_write_description: bool = True,
+    is_write_img_description: bool = True,
+    folder: str|os.PathLike = '.',
+    session: aiohttp.ClientSession|None = None
+) -> int|None:
+    """Асинхронное скачивание одной страницы комикса
+
+    Parameters
+    ----------
+    comic_name: str
+        Короткое имя комикса
+        Его можно найти в адресе, начинается с ~
+
+    page: int | str
+        Номер скачиваемой страницы
+
+    is_write_description: bool
+        Записать ли описание в файл описания
+
+    is_write_img_description: bool
+        Записать ли всплывающий текст на изображении в файл описания
+
+    folder: str | PathLike
+        Папка, в которую осуществляется скачивание
+
+    session: ClientSession | None
+        Сессия для проведения асинхронных запросов
+        Если не передана, то будет производиться обычное скачивание
+
+    Return
+    ------
+    int
+        Номер страницы, которая только что успешно скачалась, либо
+
+    None
+        Маркер, что скачивание не удалось
+    """
+    # Без сессии скачиваем страницу обычным способом
+    if not session:
+        return download_comic_page(
+            comic_name,
+            page,
+            is_write_description = is_write_description,
+            is_write_img_description = is_write_img_description,
+            folder = folder
+        )
+    
+    # Минимальный кусок html-страницы, необходимый для парсинга
+    htmlpage = _comic_get_content_page(comic_name, page)
+
+    # Название страницы
+    title = _comic_page_title(htmlpage)
+
+    # Путь к скачанному файлу
+    comic_filepath = os.path.join(
+        folder,
+        _comic_filename(page, title=title)
+        )
+    comic_filepath_description = os.path.join(
+        folder,
+        _comic_filename(page, title=title, ext=".txt")
+    )
+
+    # Перескачивать уже существующий файл не нужно
+    if not _check_corrects_file(comic_filepath):
+        # Ссылка на изображение
+        img = _comic_file_link(htmlpage)
+        # Скачивание
+        async with session.get(img) as resp:
+            with open(comic_filepath, 'wb') as file:
+                file.write(await resp.read())
+
+    # Перескачивать уже существующий файл описания не нужно
+    if not _check_corrects_file(comic_filepath_description):
+        # Описание при странице
+        description = _comic_page_description(
+            htmlpage,
+            is_write_description=is_write_description,
+            is_write_img_description=is_write_img_description
+        )
+
+        if description:
+            with open(comic_filepath_description, "w", encoding="utf-8") as file:
+                file.write(description)
+
+    # В случае успеха вернём номер страницы, иначе None
+    if _check_corrects_file(comic_filepath):
+        return page
+    return None
+
+async def async_downloadcomic(
+    comic_name: str,
+    first: int = 1,
+    last: int|None = None,
+    is_write_description: bool = True,
+    is_write_img_description: bool = True,
+    folder: str|os.PathLike = '.'
+) -> int:
+    """Асинхронное скачивание заданных страниц комикса от first до last
 
     Parameters
     ----------
@@ -409,23 +597,38 @@ def downloadcomic(
         last = find_last(comic_name)
     else:
         last = min(last, find_last(comic_name))
-    # Последовательно скачиваем страницы,
-    # запоминаем, на какой странице необходимо начинать следующее скачивание
-    last_success = first
-    for num in range(first, last):
-        if (
-            (
-                result := download_comic_page(
-                    comic_name,
-                    num,
-                    is_write_description,
-                    is_write_img_description,
-                    folder
-                )
+
+    # Скачивание
+    async with aiohttp.ClientSession() as session:
+        # Создание списка задач
+        tasks = [
+            _async_download_comic_page(
+                comic_name,
+                page,
+                is_write_description = is_write_description,
+                is_write_img_description = is_write_img_description,
+                folder = folder,
+                session = session
             )
-            and last_success == result
-        ):
-            last_success = result + 1
+            for page in range(first, last)
+        ]
+        # Запуск задач
+        results = await asyncio.gather(*tasks)
+        # Чистка результатов
+        results: list[int] = sorted(filter(bool, results))
+
+    # Возврат следующей к скачиванию страницы
+    if last - first == len(results):
+        # Длина списка результатов совпадает с количеством запрошенных страниц
+        return max(results) + 1
+    # Результатов меньше запрошенного, вероятно есть нескачанное
+    # Ищем первую пропущенную страницу и возвращаем её
+    last_success = first
+    for i in results:
+        if last_success == i:
+            last_success += 1
+        else:
+            return last_success
     return last_success
 
 if __name__ == '__main__':
@@ -440,7 +643,8 @@ if __name__ == '__main__':
         last = args.last, 
         is_write_description = args.desc, 
         is_write_img_description = args.imgtitle, 
-        folder = args.folder
+        folder = args.folder,
+        use_async = not args.no_async
     )
     # Возвращаемое значение — номер новой нескачанной страницы
     sys.exit(r)
