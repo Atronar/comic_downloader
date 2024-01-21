@@ -15,46 +15,41 @@ def arg_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         'comic',
-        help='Ссылка на главную страницу комикса на acomics',
-        type=str
+        help = 'Ссылка на главную страницу комикса на acomics',
+        type = str
     )
     parser.add_argument(
         'first',
-        nargs='?',
-        help='Первый номер, число',
-        type=int,
-        default=1
+        nargs = '?',
+        help = 'Первый номер, число',
+        type = int,
+        default = 1
     )
     parser.add_argument(
         '-last',
-        nargs='?',
-        help=(
+        nargs = '?',
+        help = (
             'Последний номер, число.'
             'Если больше возможного, то качается до последнего существующего.'
         ),
-        type=int,
-        default=False
+        type = int,
+        default = None
     )
     parser.add_argument(
         '-desc',
-        nargs='?',
-        help='Сохранять ли описания, автоматически True, если указан imgtitle, True/False',
-        default=False,
-        choices=['True', 'False']
+        help = 'Сохранять описания в текстовый файл',
+        action = 'store_true'
     )
     parser.add_argument(
         '-imgtitle',
-        nargs='?',
-        help='Сохранять ли title изображений в описаниях, True/False',
-        type=bool,
-        default=False,
-        choices=[True, False]
+        help = 'Сохранять title изображений в текстовый файл',
+        action = 'store_true'
     )
     parser.add_argument(
         '-folder',
-        help='Директория сохранения',
-        type=str,
-        default=''
+        help = 'Директория сохранения',
+        type = str,
+        default = '.'
     )
     return parser
 
@@ -437,16 +432,15 @@ if __name__ == '__main__':
     # Берём аргументы запуска
     args = arg_parser().parse_args()
 
-    if args.desc == 'True':
-        description_list=True
-    else:
-        description_list=False
-    if args.imgtitle == 'True':
-        imgtitle=True
-    else:
-        imgtitle=False
     # Скачивание
     comic_short_name = args.comic.rsplit("/",1)[-1]
-    r = downloadcomic(comic_short_name, args.first, args.last, description_list, imgtitle, args.folder)
+    r = downloadcomic(
+        comic_short_name, 
+        first = args.first, 
+        last = args.last, 
+        is_write_description = args.desc, 
+        is_write_img_description = args.imgtitle, 
+        folder = args.folder
+    )
     # Возвращаемое значение — номер новой нескачанной страницы
     sys.exit(r)

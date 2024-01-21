@@ -26,7 +26,9 @@ if __name__ == '__main__':
     for rss in rss_list[1:]:
         #print('python acomicsdownload.py '+str(rss[1])+' '+str(rss[3])+' -folder "'+rss[2]+'" -desc '+rss[6]+' -imgtitle '+rss[7])
         try:
-            procs.append(sp.Popen(f'python acomicsdownload.py {rss[2]} {rss[4]} -folder "{rss[3]}" -desc {rss[7]} -imgtitle {rss[8]}'))
+            desc = ' -desc' if str(rss[7])=='True' else ''
+            imgtitle = ' -imgtitle' if str(rss[8])=='True' else ''
+            procs.append(sp.Popen(f'python acomicsdownload.py {rss[2]} {rss[4]} -folder "{rss[3]}"{desc}{imgtitle}'))
             print(f"Процесс {rss[1]} добавлен")
         except urllib.error.URLError as e:
             print(e)
