@@ -265,7 +265,6 @@ async def _async_download_comic_page(
 
     Parameters
     ----------
-
     page: int
         Номер скачиваемой страницы
 
