@@ -85,7 +85,11 @@ def _check_corrects_file(filepath: str|os.PathLike) -> bool:
 def _comic_get_content_page(comic_name: str, page: int|str) -> BeautifulSoup:
     """Получение html-контента, содержащего всю необходимую информцию"""
     comic_page_link = _comic_file_page_link(comic_name, page)
-    with urllib.urlopen(comic_page_link) as file:
+
+    # Устанавливаем куку для обхода ограничения возраста
+    req = urllib.Request(comic_page_link, headers={'Cookie': 'ageRestrict=100'})
+
+    with urllib.urlopen(req) as file:
         content_page = BeautifulSoup(
             file.read(),
             "lxml",
