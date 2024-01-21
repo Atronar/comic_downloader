@@ -160,7 +160,7 @@ def _comic_page_description(
         if isinstance(issue_description_text, Tag):
             # Форматируем html-разметку в читаемый вид
             description_list = issue_description_text.children
-            if description := html_to_text(description_list):
+            if description := html_to_text(description_list).strip():
                 page_description.append(description)
         elif isinstance(issue_description_text, str):
             # Добавляем чистую строку
@@ -173,6 +173,14 @@ def _comic_page_description(
     if page_description:
         return "\n\n-----\n\n".join(page_description)
     return None
+
+def _clear_text_multiplespaces(text: str) -> str:
+    text = "\n".join(line.strip() for line in text.splitlines())
+    while "  " in text:
+        text = text.replace("  ", " ")
+    while "\n\n\n" in text:
+        text = text.replace("\n\n\n", "\n\n")
+    return text
 
 def make_safe_filename(filename: str) -> str:
     """
@@ -223,7 +231,7 @@ def html_to_text(elements_list: Iterable[PageElement]|Tag) -> str:
     text = ""
     for page_element in elements_list:
         if isinstance(page_element, str):
-            text += page_element.strip()
+            text += page_element
         elif isinstance(page_element, Tag):
             if page_element.name in [
                 'div', 'span', 'p',
@@ -249,7 +257,7 @@ def html_to_text(elements_list: Iterable[PageElement]|Tag) -> str:
                 raise ValueError(page_element)
         else:
             raise ValueError(page_element)
-    return text
+    return _clear_text_multiplespaces(text)
 
 def find_last(comic_name: str) -> int:
     """Поиск номера следующей за последней доступной страницы комикса на сервере
