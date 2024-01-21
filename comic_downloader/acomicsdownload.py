@@ -6,7 +6,7 @@ import argparse
 import os
 import sys
 import urllib.request as urllib
-from bs4 import BeautifulSoup, SoupStrainer
+from bs4 import BeautifulSoup, SoupStrainer, Tag
 
 def arg_parser():
     """Парсер аргументов командной строки
@@ -122,17 +122,17 @@ def find_last(comic_name: str) -> int:
     mainpage = _comic_main_page_link(comic_name)
     # На самой странице ищем ссылку, указывающую на чтение с конца
     with urllib.urlopen(mainpage) as file:
-        bs_li = BeautifulSoup(
+        read_menu = BeautifulSoup(
             file.read(),
             "lxml",
             parse_only=SoupStrainer('li', 'read-menu-item-short')
         )
-    # Внутри класса ссылки на начало, конец и спсок. Нужен конец
-    bs_a = bs_li.find_all('a')[1]
-    bs_href = bs_a.get('href')
+    # Внутри класса ссылки на начало, конец и список. Нужен конец
+    link_last: Tag = read_menu.find_all('a', limit=2)[1]
+    href = link_last.attrs.get('href', '')
     # Вытаскиваем из ссылки номер последней существующей страницы
-    last = int(bs_href.split('/')[-1])
-    # ...и озвращаем следующую
+    last = int(href.split('/')[-1])
+    # ...и возвращаем следующую
     return last + 1
 
 def writetxt(file, desc):
