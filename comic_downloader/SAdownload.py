@@ -8,6 +8,7 @@ import sys
 import urllib.request
 import urllib.error
 import asyncio
+import aiofile
 import aiohttp
 
 def arg_parser():
@@ -292,8 +293,8 @@ async def _async_download_comic_page(
     # Перескачивать уже существующий файл не нужно
     if not _check_corrects_file(comic_filepath):
         async with session.get(_comic_file_link(page)) as resp:
-            with open(comic_filepath, 'wb') as file:
-                file.write(await resp.read())
+            async with aiofile.async_open(comic_filepath, 'wb') as file:
+                await file.write(await resp.read())
     # В случае успеха вернём номер страницы, иначе None
     if _check_corrects_file(comic_filepath):
         return page
