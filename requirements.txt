@@ -1,3 +1,4 @@
+aiofile
 aiohttp
 beautifulsoup4
 win10toast

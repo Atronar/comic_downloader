@@ -8,6 +8,7 @@ import sys
 from typing import Iterable
 import urllib.request as urllib
 import asyncio
+import aiofile
 import aiohttp
 from bs4 import BeautifulSoup, PageElement, SoupStrainer, Tag
 
@@ -530,8 +531,8 @@ async def _async_download_comic_page(
         img = _comic_file_link(htmlpage)
         # Скачивание
         async with session.get(img) as resp:
-            with open(comic_filepath, 'wb') as file:
-                file.write(await resp.read())
+            async with aiofile.async_open(comic_filepath, 'wb') as file:
+                await file.write(await resp.read())
 
     # Перескачивать уже существующий файл описания не нужно
     if not _check_corrects_file(comic_filepath_description):
@@ -543,8 +544,12 @@ async def _async_download_comic_page(
         )
 
         if description:
-            with open(comic_filepath_description, "w", encoding="utf-8") as file:
-                file.write(description)
+            async with aiofile.async_open(
+                comic_filepath_description,
+                "w",
+                encoding="utf-8"
+            ) as file:
+                await file.write(description)
 
     # В случае успеха вернём номер страницы, иначе None
     if _check_corrects_file(comic_filepath):

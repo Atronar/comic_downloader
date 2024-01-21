@@ -45,5 +45,22 @@ class Test_test_AC(unittest.TestCase):
             self.assertGreater(file.stat().st_size, 8)
         self.assertEqual(len(list(Path(folder).glob("*.jpg"))), 20)
 
+    def test_async_download(self):
+        comic_name = "~romac"
+        start_page = 47
+        folder = os.path.join('TestResults', comic_name)
+        shutil.rmtree(folder, ignore_errors=True)
+        os.makedirs(folder)
+
+        loop = asyncio.get_event_loop()
+        a = loop.run_until_complete(acomicsdownload.async_downloadcomic(comic_name, start_page, start_page + 20, folder=folder))
+        print(a)
+        loop.close()
+        self.assertEqual(a, start_page + 20)
+        
+        for file in os.scandir(folder):
+            self.assertGreater(file.stat().st_size, 8)
+        self.assertEqual(len(list(Path(folder).glob("*.jpg"))), 20)
+
 if __name__ == '__main__':
     unittest.main()
