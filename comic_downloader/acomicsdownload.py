@@ -292,22 +292,6 @@ def find_last(comic_name: str) -> int:
     # ...и возвращаем следующую
     return last + 1
 
-def writefile(
-    mainpage: str,
-    num: int,
-    description: bool,
-    imgtitle: bool,
-    folder: str|os.PathLike
-):
-    """Скачивание страницы комикса"""
-    return download_comic_page(
-        mainpage,
-        num,
-        is_write_description=description,
-        is_write_img_description=imgtitle,
-        folder=folder
-    )
-
 def download_comic_page(
     comic_name: str,
     page: int,
@@ -384,12 +368,12 @@ def download_comic_page(
         return page
     return None
 
-def downloadacomic(
+def downloadcomic(
     comic_name: str,
     first: int = 1,
     last: int|None = None,
-    desc = False,
-    imgtitle = False,
+    is_write_description: bool = True,
+    is_write_img_description: bool = True,
     folder: str|os.PathLike = '.'
 ) -> int:
     """Скачивание заданных страниц комикса от first до last
@@ -399,7 +383,7 @@ def downloadacomic(
     comic_name: str
         Короткое имя комикса
         Его можно найти в адресе, начинается с ~
-        
+
     first: int
         Номер первой страницы, которую ещё не скачивали
 
@@ -407,6 +391,12 @@ def downloadacomic(
         Номер последней страницы, до которой (не включительно) вести скачивание
         Если страниц существует меньше, то скачиваться будут страницы до последней существующей
         Если не указано, то скачиваться будут страницы до последней существующей
+
+    is_write_description: bool
+        Записывать ли описание в файл описания
+
+    is_write_img_description: bool
+        Записывать ли всплывающий текст на изображении в файл описания
 
     folder: str | PathLike
         Папка, в которую осуществляется скачивание
@@ -422,17 +412,24 @@ def downloadacomic(
     # Установка последней страницы при её отсутствии
     if not last:
         last = find_last(comic_name)
-
-    if imgtitle:
-        desc=imgtitle
-        
-    mainpage = _comic_main_page_link(comic_name)
+    else:
+        last = min(last, find_last(comic_name))
     # Последовательно скачиваем страницы,
     # запоминаем, на какой странице необходимо начинать следующее скачивание
     last_success = first
     for num in range(first, last):
-        writefile(mainpage, num, desc, imgtitle, folder)
-        if (result := last_success) and last_success == result:
+        if (
+            (
+                result := download_comic_page(
+                    comic_name,
+                    num,
+                    is_write_description,
+                    is_write_img_description,
+                    folder
+                )
+            )
+            and last_success == result
+        ):
             last_success = result + 1
     return last_success
 
@@ -441,15 +438,15 @@ if __name__ == '__main__':
     args = arg_parser().parse_args()
 
     if args.desc == 'True':
-        desc=True
+        description_list=True
     else:
-        desc=False
+        description_list=False
     if args.imgtitle == 'True':
         imgtitle=True
     else:
         imgtitle=False
     # Скачивание
     comic_short_name = args.comic.rsplit("/",1)[-1]
-    r = downloadacomic(comic_short_name, args.first, args.last, desc, imgtitle, args.folder)
+    r = downloadcomic(comic_short_name, args.first, args.last, description_list, imgtitle, args.folder)
     # Возвращаемое значение — номер новой нескачанной страницы
     sys.exit(r)
