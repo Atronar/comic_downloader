@@ -85,7 +85,10 @@ def _check_corrects_file(filepath: str|os.PathLike) -> bool:
     """Проверка файла на существование и корректность"""
     return os.path.exists(filepath) and os.path.getsize(filepath) > 8
 
-def _comic_get_content_page(comic_name: str, page: int|str) -> BeautifulSoup:
+def _comic_get_content_page(
+    comic_name: str,
+    page: int|str
+) -> BeautifulSoup:
     """Получение html-контента, содержащего всю необходимую информцию"""
     comic_page_link = _comic_file_page_link(comic_name, page)
 
@@ -95,6 +98,34 @@ def _comic_get_content_page(comic_name: str, page: int|str) -> BeautifulSoup:
     with urllib.urlopen(req) as file:
         content_page = BeautifulSoup(
             file.read(),
+            "lxml",
+            parse_only=SoupStrainer('div', 'common-content')
+        )
+    return content_page
+
+async def _async_comic_get_content_page(
+    comic_name: str,
+    page: int|str,
+    async_session: aiohttp.ClientSession|None=None
+) -> BeautifulSoup:
+    """Асинхронное получение html-контента, содержащего всю необходимую информцию"""
+    # Без сессии скачиваем страницу обычным запросом
+    if async_session:
+        _request = async_session.request
+    else:
+        _request = aiohttp.request
+
+    comic_page_link = _comic_file_page_link(comic_name, page)
+
+    # Устанавливаем куку для обхода ограничения возраста
+    headers = {'Cookie': 'ageRestrict=100'}
+
+    async with _request('GET',
+        comic_page_link,
+        headers = headers
+    ) as file:
+        content_page = BeautifulSoup(
+            await file.read(),
             "lxml",
             parse_only=SoupStrainer('div', 'common-content')
         )
@@ -284,6 +315,60 @@ def find_last(comic_name: str) -> int:
     with urllib.urlopen(mainpage) as file:
         read_menu = BeautifulSoup(
             file.read(),
+            "lxml",
+            parse_only=SoupStrainer('li', 'read-menu-item-short')
+        )
+    # Внутри класса ссылки на начало, конец и список. Нужен конец
+    link_last: Tag = read_menu.find_all('a', limit=2)[1]
+    href = link_last.attrs.get('href', '')
+    # Вытаскиваем из ссылки номер последней существующей страницы
+    last = int(href.split('/')[-1])
+    # ...и возвращаем следующую
+    return last + 1
+
+async def async_find_last(
+    comic_name: str,
+    async_session: aiohttp.ClientSession|None=None
+) -> int:
+    """Асинхронный поиск номера следующей за последней доступной страницы комикса на сервере
+
+    Parameters
+    ----------
+    comic_name: str
+        Короткое имя комикса
+        Его можно найти в адресе, начинается с ~
+
+    session: ClientSession | None
+        Сессия для проведения асинхронных запросов
+        Если не передана, то будет производиться обычный поиск
+
+    Return
+    ------
+    int
+        Номер страницы, которую надо проверять для обновления
+
+        Если на сервере есть страницы с 1 по 10, но 11 ещё не вышла, то вернётся именно 11
+    """
+    # Без сессии используем обычный запрос
+    if async_session:
+        _request = async_session.request
+    else:
+        _request = aiohttp.request
+
+    # Ссылка на последнюю страницу есть на главной
+    mainpage = _comic_main_page_link(comic_name)
+
+    # Устанавливаем куку для обхода ограничения возраста
+    headers = {'Cookie': 'ageRestrict=100'}
+
+    # На самой странице ищем ссылку, указывающую на чтение с конца
+    async with _request(
+        "GET",
+        mainpage,
+        headers = headers
+    ) as file:
+        read_menu = BeautifulSoup(
+            await file.read(),
             "lxml",
             parse_only=SoupStrainer('li', 'read-menu-item-short')
         )
@@ -499,18 +584,14 @@ async def _async_download_comic_page(
     None
         Маркер, что скачивание не удалось
     """
-    # Без сессии скачиваем страницу обычным способом
-    if not session:
-        return download_comic_page(
-            comic_name,
-            page,
-            is_write_description = is_write_description,
-            is_write_img_description = is_write_img_description,
-            folder = folder
-        )
-    
     # Минимальный кусок html-страницы, необходимый для парсинга
-    htmlpage = _comic_get_content_page(comic_name, page)
+    htmlpage = await _async_comic_get_content_page(comic_name, page, async_session=session)
+
+    # Без сессии скачиваем страницу обычным запросом
+    if session:
+        _request = session.request
+    else:
+        _request = aiohttp.request
 
     # Название страницы
     title = _comic_page_title(htmlpage)
@@ -530,7 +611,7 @@ async def _async_download_comic_page(
         # Ссылка на изображение
         img = _comic_file_link(htmlpage)
         # Скачивание
-        async with session.get(img) as resp:
+        async with _request("GET", img) as resp:
             async with aiofile.async_open(comic_filepath, 'wb') as file:
                 await file.write(await resp.read())
 
@@ -597,14 +678,14 @@ async def async_downloadcomic(
 
         Если на сервере есть страницы с 1 по 10, но 11 ещё не вышла, то вернётся именно 11
     """
-    # Установка последней страницы при её отсутствии
-    if not last:
-        last = find_last(comic_name)
-    else:
-        last = min(last, find_last(comic_name))
-
-    # Скачивание
     async with aiohttp.ClientSession() as session:
+        # Установка последней страницы при её отсутствии
+        if not last:
+            last = await async_find_last(comic_name, async_session=session)
+        else:
+            last = min(last, await async_find_last(comic_name, async_session=session))
+
+        # Скачивание
         # Создание списка задач
         tasks = [
             _async_download_comic_page(
