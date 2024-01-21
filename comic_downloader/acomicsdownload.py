@@ -3,7 +3,6 @@ https://acomics.ru
 """
 
 import argparse
-import io
 import os
 import sys
 from typing import Iterable
@@ -281,45 +280,97 @@ def find_last(comic_name: str) -> int:
     # ...и возвращаем следующую
     return last + 1
 
-def writetxt(file: io.TextIOBase, desc: Iterable[PageElement]|Tag):
-    """Запись текстового описания в файл"""
-    file.write(html_to_text(desc))
-
-def writefile(mainpage, num, description, imgtitle, folder):
+def writefile(
+    mainpage: str,
+    num: int,
+    description: bool,
+    imgtitle: bool,
+    folder: str|os.PathLike
+):
     """Скачивание страницы комикса"""
-    with urllib.urlopen(f"{mainpage}/{num}") as file:
-        htmlpage = BeautifulSoup(file.read(), "lxml")
-    htmlpage_mainImage = htmlpage.find('img', id='mainImage').extract()
-    img = f"https://acomics.ru{htmlpage_mainImage['src']}"
-    if imgtitle:
-        if 'title' in f"{htmlpage_mainImage}":
-            imgtitle_text=htmlpage_mainImage['title']
-        else:
-            imgtitle = False
-    title = htmlpage.find("span", "title").contents[0]
-    if title[-1] == '.':
-        title=title[:-1]
-    htmlpage_description = htmlpage.find("div", "description")
-    if htmlpage_description:
-        htmlpage_description = htmlpage_description.extract()
-    if description and htmlpage_description:
-        desc = htmlpage_description.contents
-    else:
-        desc = False
+    return download_comic_page(
+        mainpage,
+        num,
+        is_write_description=description,
+        is_write_img_description=imgtitle,
+        folder=folder
+    )
 
-    urllib.urlretrieve(img, os.path.join(folder, f"{num} - {make_safe_filename(title)}.jpg"))
-    if desc or imgtitle:
-        with open(
-            os.path.join(folder, f"{num} - {make_safe_filename(title)}.txt"),
-            "w",
-            encoding="utf-8"
-        ) as file:
-            if imgtitle:
-                file.write(imgtitle_text)
-            if imgtitle and desc:
-                file.write("\n\n-----\n\n")
-            if desc:
-                writetxt(file, desc)
+def download_comic_page(
+    comic_name: str,
+    page: int,
+    is_write_description: bool = True,
+    is_write_img_description: bool = True,
+    folder: str|os.PathLike = '.'
+) -> int|None:
+    """Скачивание страницы комикса
+
+    Parameters
+    ----------
+    comic_name: str
+        Короткое имя комикса
+        Его можно найти в адресе, начинается с ~
+
+    page: int | str
+        Номер скачиваемой страницы
+
+    is_write_description: bool
+        Записать ли описание в файл описания
+
+    is_write_img_description: bool
+        Записать ли всплывающий текст на изображении в файл описания
+
+    folder: str | PathLike
+        Папка, в которую осуществляется скачивание
+
+    Return
+    ------
+    int
+        Номер страницы, которая только что успешно скачалась, либо
+
+    None
+        Маркер, что скачивание не удалось
+    """
+    # Минимальный кусок html-страницы, необходимый для парсинга
+    htmlpage = _comic_get_content_page(comic_name, page)
+
+    # Название страницы
+    title = _comic_page_title(htmlpage)
+
+    # Путь к скачанному файлу
+    comic_filepath = os.path.join(
+        folder,
+        _comic_filename(page, title=title)
+        )
+    comic_filepath_description = os.path.join(
+        folder,
+        _comic_filename(page, title=title, ext=".txt")
+    )
+
+    # Перескачивать уже существующий файл не нужно
+    if not _check_corrects_file(comic_filepath):
+        # Ссылка на изображение
+        img = _comic_file_link(htmlpage)
+        # Скачивание
+        urllib.urlretrieve(img, comic_filepath)
+
+    # Перескачивать уже существующий файл описания не нужно
+    if not _check_corrects_file(comic_filepath_description):
+        # Описание при странице
+        description = _comic_page_description(
+            htmlpage,
+            is_write_description=is_write_description,
+            is_write_img_description=is_write_img_description
+        )
+
+        if description:
+            with open(comic_filepath_description, "w", encoding="utf-8") as file:
+                file.write(description)
+
+    # В случае успеха вернём номер страницы, иначе None
+    if _check_corrects_file(comic_filepath):
+        return page
+    return None
 
 def downloadacomic(
     comic_name: str,
