@@ -60,8 +60,8 @@ class RSSRow:
 
 class RSSData:
     """Данные из БД"""
-    def __init__(self, data: Iterable[row_tuple]):
-        self.data = [RSSRow(row) for row in data]
+    def __init__(self, data: Iterable[row_tuple|RSSRow]):
+        self.data = [RSSRow(row) if isinstance(row, tuple) else row for row in data]
 
     @property
     def raw(self) -> list[row_tuple]:
@@ -75,6 +75,15 @@ class RSSData:
 
     def __eq__(self, other: Self) -> bool:
         return self.raw == other.raw
+    
+    @overload
+    def __getitem__(self, index: slice) -> Self: ...
+    @overload
+    def __getitem__(self, index: int) -> RSSRow: ...
+    def __getitem__(self, index: int|slice):
+        if isinstance(index, slice):
+            return RSSData(self.data[index])
+        return self.data[index]
 
 class RSSDB:
     """Класс работы с БД"""
