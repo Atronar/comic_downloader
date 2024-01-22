@@ -6,10 +6,10 @@ import argparse
 import os
 import sys
 import urllib.request
-import urllib.error
 import asyncio
 import aiofile
 import aiohttp
+import requests
 
 def arg_parser():
     """Парсер аргументов командной строки
@@ -81,11 +81,12 @@ def find_last(first_unknown_exists_page: int=1, force_add_mode: bool=False) -> i
     # Если нынешняя страница слишком большая,
     # то бинарный поиск чаще может оказаться избыточным,
     # например, если в итоге нужная страница окажется следующей
-    if not force_add_mode or first_unknown_exists_page < 500:
-        return _find_last_mul(first_unknown_exists_page)
-    return _find_last_add(first_unknown_exists_page)
+    with requests.Session() as session:
+        if not force_add_mode or first_unknown_exists_page < 500:
+            return _find_last_mul(first_unknown_exists_page, session=session)
+        return _find_last_add(first_unknown_exists_page, session=session)
 
-def _find_last_mul(first_unknown_exists_page: int=1) -> int:
+def _find_last_mul(first_unknown_exists_page: int=1, session: requests.Session|None=None) -> int:
     """Бинарный поиск номера следующей за последней доступной
     страницы комикса на сервере
     """
@@ -115,56 +116,87 @@ def _find_last_mul(first_unknown_exists_page: int=1) -> int:
         first_unknown_exists_page = (min_ + max_) // 2
 
     while True:
-        try:
-            resp_code = _findlast_check(first_unknown_exists_page)
-            # Страница существует, поэтому ...
-            if resp_code == 200:
-                if max_need_search:
-                    # ..., так как верхнюю грань не нашли, сдвигаем её вверх до найденной
-                    find_max_handler()
-                elif first_unknown_exists_page - min_ > 0:
-                    # ..., так как верхняя грань известна, сдвигаем нижнюю грань вверх до найденной
-                    set_min_handler()
-                else:
-                    # ..., так как верхняя и нижняя грань совпали, возвращаем найденное
-                    return first_unknown_exists_page + 1
-        except urllib.error.HTTPError as err:
-            # Страница не существует, поэтому ...
-            if err.code == 404:
-                if max_need_search:
-                    # ... это искомая верхняя грань, далее будет идти лишь сдвиг граней
-                    max_need_search = False
-                    set_max_handler()
-                elif first_unknown_exists_page - min_ > 0:
-                    # ... сдвигаем верхнюю грань вниз до несуществующей
-                    set_max_handler()
-                else:
-                    # ..., так как верхняя и нижняя грань совпали, возвращаем найденное
-                    return first_unknown_exists_page
+        resp_code = _findlast_check(first_unknown_exists_page, session=session)
+        # Страница существует, поэтому ...
+        if resp_code == 200:
+            if max_need_search:
+                # ..., так как верхнюю грань не нашли, сдвигаем её вверх до найденной
+                find_max_handler()
+            elif first_unknown_exists_page - min_ > 0:
+                # ..., так как верхняя грань известна, сдвигаем нижнюю грань вверх до найденной
+                set_min_handler()
+            else:
+                # ..., так как верхняя и нижняя грань совпали, возвращаем найденное
+                return first_unknown_exists_page + 1
+        # Страница не существует, поэтому ...
+        elif resp_code == 404:
+            if max_need_search:
+                # ... это искомая верхняя грань, далее будет идти лишь сдвиг граней
+                max_need_search = False
+                set_max_handler()
+            elif first_unknown_exists_page - min_ > 0:
+                # ... сдвигаем верхнюю грань вниз до несуществующей
+                set_max_handler()
+            else:
+                # ..., так как верхняя и нижняя грань совпали, возвращаем найденное
+                return first_unknown_exists_page
+        else:
+            raise requests.HTTPError(f"{resp_code} http code error")
 
-def _find_last_add(first_unknown_exists_page: int=1) -> int:
+def _find_last_add(first_unknown_exists_page: int=1, session: requests.Session|None=None) -> int:
     """Последовательный поиск номера следующей за последней доступной
     страницы комикса на сервере
     """
     while True:
-        try:
-            resp_code = _findlast_check(first_unknown_exists_page)
-            # Страница существует, поэтому ...
-            if resp_code == 200:
-                # ... переходим к следующей
-                first_unknown_exists_page += 1
-        except urllib.error.HTTPError as err:
-            # Страница не существует, поэтому ...
-            if err.code == 404:
-                # ... возвращаем найденное
-                return first_unknown_exists_page
+        resp_code = _findlast_check(first_unknown_exists_page)
+        # Страница существует, поэтому ...
+        if resp_code == 200:
+            # ... переходим к следующей
+            first_unknown_exists_page += 1
+        # Страница не существует, поэтому ...
+        elif resp_code == 404:
+            # ... возвращаем найденное
+            return first_unknown_exists_page
+        else:
+            raise requests.HTTPError(f"{resp_code} http code error")
 
-def _findlast_check(page: int|str) -> int:
+def _findlast_check(page: int|str, session: requests.Session|None=None) -> int:
     """Запрос страницы комикса на сервере
     Возвращается код ответа
     """
-    with urllib.request.urlopen(_comic_file_link(page)) as response:
-        return response.getcode()
+    if session:
+        _get = session.get
+    else:
+        _get = requests.get
+    with _get(_comic_file_link(page)) as response:
+        return response.status_code
+
+async def async_find_last(
+    first_unknown_exists_page: int = 1,
+    force_add_mode: bool = False,
+    async_session: aiohttp.ClientSession|None = None
+) -> int:
+    """Поиск номера следующей за последней доступной страницы комикса на сервере
+
+    Parameters
+    ----------
+    first_unknown_exists_page: int
+        Номер первой страницы, доступность которой неизвестна
+        Поиск будет вестись, начиная с неё
+
+    force_add_mode: bool
+        Принудительное использование последовательного постраничного поиска
+        При exists_page более 500 не используется
+        По умолчанию используется бинарный поиск
+
+    Return
+    ------
+    int
+        Номер страницы, которую надо проверять для обновления
+
+        Если на сервере есть страницы с 1 по 10, но 11 ещё не вышла, то вернётся именно 11
+    """
+    return find_last(first_unknown_exists_page=first_unknown_exists_page, force_add_mode=force_add_mode)
 
 def download_comic_page(page: int, folder: str|os.PathLike='.') -> int|None:
     """Скачивание одной страницы комикса
