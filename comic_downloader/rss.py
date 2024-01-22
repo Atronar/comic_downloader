@@ -105,39 +105,16 @@ class RSSDB:
 
 def service_db():
     """Обслуживание БД"""
-    with dbclosing(sqlite3.connect(DB_NAME)) as connection:
-        with connection as cursor:
-            cursor.execute('vacuum')
-    print("БД rss.db успешно оптимизирована")
+    return RSSDB(DB_NAME).service_db()
 
-def get_db() -> list[tuple[str|int]]:
+def get_db():
     """Получить данные из БД"""
-    with dbclosing(sqlite3.connect(DB_NAME)) as connection:
-        with connection as cursor:
-            res = cursor.execute('select * from rss_list')
-            res = res.fetchall()
-    return res
+    return RSSDB(DB_NAME).get_db().raw
 
 def set_last_num(rss_id: int, last_num: int):
     """Обновить номер первого непрочитанного"""
-    with dbclosing(sqlite3.connect(DB_NAME)) as connection:
-        with connection as cursor:
-            cursor.execute(
-                """update rss_list
-                set last_num=?,
-                        last_chk=datetime('now'),
-                        last_upd=datetime('now')
-                where id=?""",
-                (last_num, rss_id)
-            )
+    return RSSDB(DB_NAME).set_last_num(rss_id, last_num)
 
 def set_last_chk(rss_id: int):
     """Обновить время последней проверки"""
-    with dbclosing(sqlite3.connect(DB_NAME)) as connection:
-        with connection as cursor:
-            cursor.execute(
-                """update rss_list
-                set last_chk=datetime('now')
-                where id=?""",
-                (rss_id,)
-            )
+    return RSSDB(DB_NAME).set_last_chk(rss_id)
