@@ -1,20 +1,22 @@
 from datetime import datetime
 import sqlite3
 from contextlib import closing as dbclosing
-from typing import Iterable, Self, Sequence
+from typing import Iterable, Self, Sequence, overload
 
 DB_NAME = "rss.db"
 
+row_tuple = tuple[int, str, str, str, int, str, str, str|int, str|int]
+
 class RSSRow:
     """Строка данных из БД"""
-    def __init__(self, data: Sequence[str|int]):
-        self.id: int = int(data[0])
-        self.name: str = str(data[1])
-        self.url: str = str(data[2])
-        self.dir: str = str(data[3])
-        self.last_num: int = int(data[4])
-        self.last_chk: datetime = datetime.fromisoformat(str(data[5]))
-        self.last_upd: datetime = datetime.fromisoformat(str(data[6]))
+    def __init__(self, data: row_tuple):
+        self.id: int = data[0]
+        self.name: str = data[1]
+        self.url: str = data[2]
+        self.dir: str = data[3]
+        self.last_num: int = data[4]
+        self.last_chk: datetime = datetime.fromisoformat(data[5])
+        self.last_upd: datetime = datetime.fromisoformat(data[6])
         if isinstance(data[7], int):
             self.desc: bool = bool(data[7])
         else:
@@ -25,7 +27,7 @@ class RSSRow:
             self.imgtitle: bool = data[8].lower()=="true"
 
     @property
-    def raw(self) -> tuple[int, str, str, str, int, str, str, str, str]:
+    def raw(self) -> row_tuple:
         return (
             self.id,
             self.name,
@@ -46,14 +48,23 @@ class RSSRow:
 
     def __eq__(self, other: Self) -> bool:
         return self.raw == other.raw
+    
+    def __getitem__(self, index: int|str) -> int|str:
+        if isinstance(index, int):
+            return self.raw[index]
+        if isinstance(elem:=self.__dict__[index], datetime):
+            return elem.isoformat(sep=" ")
+        if isinstance(elem:=self.__dict__[index], bool):
+            return str(elem)
+        return self.__dict__[index]
 
 class RSSData:
     """Данные из БД"""
-    def __init__(self, data: Iterable[Sequence[str|int]]):
+    def __init__(self, data: Iterable[row_tuple]):
         self.data = [RSSRow(row) for row in data]
 
     @property
-    def raw(self) -> list[tuple[int, str, str, str, int, str, str, str, str]]:
+    def raw(self) -> list[row_tuple]:
         return [row.raw for row in self.data]
 
     def __str__(self):
