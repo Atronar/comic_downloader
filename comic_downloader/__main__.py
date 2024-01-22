@@ -5,7 +5,7 @@ from win10toast import ToastNotifier
 
 import rss
 
-if __name__ == '__main__':
+def main():
     toaster = ToastNotifier()
     db = rss.RSSDB(rss.DB_NAME)
     db.service_db()
@@ -27,9 +27,14 @@ if __name__ == '__main__':
     for rss_item in rss_list[1:]:
         #print('python acomicsdownload.py ' + str(rss[1]) + ' ' + str(rss[3]) + ' -folder "' + rss[2] + '" -desc ' + rss[6] + ' -imgtitle ' + rss[7])
         try:
-            desc = ' -desc' if str(rss_item[7])=='True' else ''
-            imgtitle = ' -imgtitle' if str(rss_item[8])=='True' else ''
-            procs.append(sp.Popen(f'python acomicsdownload.py {rss_item[2]} {rss_item[4]} -folder "{rss_item[3]}"{desc}{imgtitle}'))
+            procs.append(
+                sp.Popen(
+                    f'python acomicsdownload.py {rss_item[2]} {rss_item[4]} '
+                    f'-folder "{rss_item[3]}"'
+                    f'{" -desc" if str(rss_item[7])=="True" else ""}'
+                    f'{" -imgtitle" if str(rss_item[8])=="True" else ""}'
+                )
+            )
             print(f"Процесс {rss_item[1]} добавлен")
         except urllib.error.URLError as e:
             print(e)
@@ -44,3 +49,5 @@ if __name__ == '__main__':
             db.set_last_chk(rss_item[0])
         print(f"Процесс {rss_item[1]} завершён")
 
+if __name__ == '__main__':
+    main()
