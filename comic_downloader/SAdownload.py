@@ -148,7 +148,7 @@ def _find_last_add(first_unknown_exists_page: int=1, session: requests.Session|N
     страницы комикса на сервере
     """
     while True:
-        resp_code = _findlast_check(first_unknown_exists_page)
+        resp_code = _findlast_check(first_unknown_exists_page, session=session)
         # Страница существует, поэтому ...
         if resp_code == 200:
             # ... переходим к следующей
