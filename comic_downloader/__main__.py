@@ -25,7 +25,6 @@ def main():
 
     # Acomics
     for rss_item in rss_list[1:]:
-        #print('python acomicsdownload.py ' + str(rss[1]) + ' ' + str(rss[3]) + ' -folder "' + rss[2] + '" -desc ' + rss[6] + ' -imgtitle ' + rss[7])
         try:
             procs.append(
                 sp.Popen(
@@ -36,9 +35,8 @@ def main():
                 )
             )
             print(f"Процесс {rss_item[1]} добавлен")
-        except urllib.error.URLError as e:
-            print(e)
-        #print(rss)
+        except urllib.error.URLError as err:
+            print(err)
 
     for rss_item in rss_list[1:]:
         procs[rss_item[0]-1].wait()
