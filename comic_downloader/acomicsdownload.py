@@ -6,7 +6,7 @@ import argparse
 import os
 import sys
 from typing import Iterable
-import urllib.request as urllib
+import urllib.request
 import asyncio
 import aiofile
 import aiohttp
@@ -93,9 +93,9 @@ def _comic_get_content_page(
     comic_page_link = _comic_file_page_link(comic_name, page)
 
     # Устанавливаем куку для обхода ограничения возраста
-    req = urllib.Request(comic_page_link, headers={'Cookie': 'ageRestrict=100'})
+    req = urllib.request.Request(comic_page_link, headers={'Cookie': 'ageRestrict=100'})
 
-    with urllib.urlopen(req) as file:
+    with urllib.request.urlopen(req) as file:
         content_page = BeautifulSoup(
             file.read(),
             "lxml",
@@ -311,8 +311,12 @@ def find_last(comic_name: str) -> int:
     """
     # Ссылка на последнюю страницу есть на главной
     mainpage = _comic_main_page_link(comic_name)
+
+    # Устанавливаем куку для обхода ограничения возраста
+    req = urllib.request.Request(mainpage, headers={'Cookie': 'ageRestrict=100'})
+
     # На самой странице ищем ссылку, указывающую на чтение с конца
-    with urllib.urlopen(mainpage) as file:
+    with urllib.request.urlopen(req) as file:
         read_menu = BeautifulSoup(
             file.read(),
             "lxml",
@@ -436,7 +440,7 @@ def download_comic_page(
         # Ссылка на изображение
         img = _comic_file_link(htmlpage)
         # Скачивание
-        urllib.urlretrieve(img, comic_filepath)
+        urllib.request.urlretrieve(img, comic_filepath)
 
     # Перескачивать уже существующий файл описания не нужно
     if not _check_corrects_file(comic_filepath_description):
