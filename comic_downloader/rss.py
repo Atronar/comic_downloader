@@ -11,20 +11,39 @@ class RSSRow:
     """Строка данных из БД"""
     def __init__(self, data: row_tuple):
         self.id: int = data[0]
+        """Идентификатор записи в БД"""
+
         self.name: str = data[1]
+        """Название комикса"""
+
         self.url: str = data[2]
+        """Ссылка на комикс"""
+
         self.dir: str = data[3]
+        """Путь для скачивания"""
+
         self.last_num: int = data[4]
+        """Номер выпуска, с которого необходимо производить обновление"""
+
         self.last_chk: datetime = datetime.fromisoformat(data[5])
+        """Время последней проверки"""
+
         self.last_upd: datetime = datetime.fromisoformat(data[6])
+        """Время последнего успешного обновления"""
+
+        self.desc: bool
+        """Скачивать ли описания"""
         if isinstance(data[7], int):
-            self.desc: bool = bool(data[7])
+            self.desc = bool(data[7])
         else:
-            self.desc: bool = data[7].lower()=="true"
+            self.desc = data[7].lower()=="true"
+
+        self.imgtitle: bool
+        """Скачивать ли всплывающий текст на изображениях"""
         if isinstance(data[8], int):
-            self.imgtitle: bool = bool(data[8])
+            self.imgtitle = bool(data[8])
         else:
-            self.imgtitle: bool = data[8].lower()=="true"
+            self.imgtitle = data[8].lower()=="true"
 
     @property
     def raw(self) -> row_tuple:
@@ -48,7 +67,7 @@ class RSSRow:
 
     def __eq__(self, other: Self) -> bool:
         return self.raw == other.raw
-    
+
     def __getitem__(self, index: int|str) -> int|str:
         if isinstance(index, int):
             return self.raw[index]
@@ -75,7 +94,7 @@ class RSSData:
 
     def __eq__(self, other: Self) -> bool:
         return self.raw == other.raw
-    
+
     @overload
     def __getitem__(self, index: slice) -> Self: ...
     @overload
