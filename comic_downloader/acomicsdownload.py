@@ -136,16 +136,14 @@ def _comic_file_link(content: Tag) -> str:
     img = content.find("img", "issue")
     if isinstance(img, Tag) and (src := img.attrs.get('src', None)):
         return f"https://acomics.ru{src}"
-    else:
-        raise ValueError(content)
+    raise ValueError(content)
 
 def _comic_page_title(content: Tag) -> str:
     """Получение заголовка страницы комикса"""
     span = content.find("span", "title")
     if span:
         return span.get_text(strip=True).rstrip(".")
-    else:
-        raise ValueError(content)
+    raise ValueError(content)
 
 def _comic_page_description(
     content: Tag,
@@ -209,6 +207,7 @@ def _comic_page_description(
     return None
 
 def _clear_text_multiplespaces(text: str) -> str:
+    """Очистка от множестенных пробелов и переносов строки"""
     text = "\n".join(line.strip() for line in text.splitlines())
     while "  " in text:
         text = text.replace("  ", " ")
@@ -728,11 +727,11 @@ if __name__ == '__main__':
     # Скачивание
     comic_short_name = args.comic.rsplit("/",1)[-1]
     r = downloadcomic(
-        comic_short_name, 
-        first = args.first, 
-        last = args.last, 
-        is_write_description = args.desc, 
-        is_write_img_description = args.imgtitle, 
+        comic_short_name,
+        first = args.first,
+        last = args.last,
+        is_write_description = args.desc,
+        is_write_img_description = args.imgtitle,
         folder = args.folder,
         use_async = not args.no_async
     )

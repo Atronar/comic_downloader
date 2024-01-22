@@ -196,7 +196,10 @@ async def async_find_last(
 
         Если на сервере есть страницы с 1 по 10, но 11 ещё не вышла, то вернётся именно 11
     """
-    return find_last(first_unknown_exists_page=first_unknown_exists_page, force_add_mode=force_add_mode)
+    return find_last(
+        first_unknown_exists_page = first_unknown_exists_page,
+        force_add_mode = force_add_mode
+    )
 
 def download_comic_page(page: int, folder: str|os.PathLike='.') -> int|None:
     """Скачивание одной страницы комикса
