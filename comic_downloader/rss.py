@@ -24,6 +24,20 @@ class RSSRow:
         else:
             self.imgtitle: bool = data[8].lower()=="true"
 
+    @property
+    def raw(self) -> tuple[int, str, str, str, int, str, str, str, str]:
+        return (
+            self.id,
+            self.name,
+            self.url,
+            self.dir,
+            self.last_num,
+            self.last_chk.isoformat(sep=" "),
+            self.last_upd.isoformat(sep=" "),
+            str(self.desc),
+            str(self.imgtitle)
+        )
+
     def __str__(self):
         return str(self.__dict__)
 
@@ -34,6 +48,10 @@ class RSSData:
     """Данные из БД"""
     def __init__(self, data: Iterable[Sequence[str|int]]):
         self.data = [RSSRow(row) for row in data]
+
+    @property
+    def raw(self) -> list[tuple[int, str, str, str, int, str, str, str, str]]:
+        return [row.raw for row in self.data]
 
     def __str__(self):
         return str([row.__dict__ for row in self.data])
