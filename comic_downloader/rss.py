@@ -1,7 +1,7 @@
 from datetime import datetime
 import sqlite3
 from contextlib import closing as dbclosing
-from typing import Iterable, Sequence
+from typing import Iterable, Self, Sequence
 
 DB_NAME = "rss.db"
 
@@ -44,6 +44,9 @@ class RSSRow:
     def __repr__(self):
         return f"RSSRow({repr(self.__dict__)}.values())"
 
+    def __eq__(self, other: Self) -> bool:
+        return self.raw == other.raw
+
 class RSSData:
     """Данные из БД"""
     def __init__(self, data: Iterable[Sequence[str|int]]):
@@ -58,6 +61,9 @@ class RSSData:
 
     def __repr__(self):
         return f"RSSData({repr(self.data)})"
+
+    def __eq__(self, other: Self) -> bool:
+        return self.raw == other.raw
 
 class RSSDB:
     """Класс работы с БД"""
