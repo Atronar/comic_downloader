@@ -3,17 +3,17 @@ from comic_downloader import rss
 
 class Test_test_rss(unittest.TestCase):
     def test_get_db(self):
-        a = rss.get_db()
+        a = rss.RSSDB(rss.DB_NAME).get_db()
         print(a)
         
     def test_get_row(self):
-        a = rss.get_db()
-        b = rss.RSSRow(a[0])
+        a = rss.RSSDB(rss.DB_NAME).get_db()
+        b = a[0]
         print(b)
         
     def test_get_data(self):
-        a = rss.get_db()
-        b = rss.RSSData(a)
+        a = rss.RSSDB(rss.DB_NAME).get_db()
+        b = a.data
         print(b)
 
 if __name__ == '__main__':
