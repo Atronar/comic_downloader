@@ -1,7 +1,7 @@
 from datetime import datetime
 import sqlite3
 from contextlib import closing as dbclosing
-from typing import Iterable, Self, Sequence, overload
+from typing import Iterable, Self, overload
 
 DB_NAME = "rss.db"
 
