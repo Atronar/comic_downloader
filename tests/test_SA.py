@@ -1,4 +1,5 @@
-﻿import unittest
+﻿import shutil
+import unittest
 import asyncio
 from comic_downloader import SAdownload
 import os
@@ -21,51 +22,51 @@ class Test_test_SA(unittest.TestCase):
         self.assertEqual(a, "SA_0047_small.jpg")
 
     def test_download_single(self):
+        comic_name = "SA"
         page = 47
-        filepath = os.path.join('TestResults', SAdownload._comic_filename(page))
+        folder = os.path.join('TestResults', comic_name)
+        shutil.rmtree(folder, ignore_errors=True)
+        os.makedirs(folder)
+        filepath = os.path.join(folder, SAdownload._comic_filename(page))
         try:
             os.remove(filepath)
         except FileNotFoundError:
             pass
-        a = SAdownload.download_comic_page(page, 'TestResults')
+        a = SAdownload.download_comic_page(page, folder)
         self.assertTrue(os.path.exists(filepath))
         self.assertGreater(os.path.getsize(filepath), 8)
 
     def test_download(self):
+        comic_name = "SA"
         start_page = 147
-        for page in range(start_page, start_page + 20):
-            filepath = os.path.join('TestResults', SAdownload._comic_filename(page))
-            try:
-                os.remove(filepath)
-            except FileNotFoundError:
-                pass
+        folder = os.path.join('TestResults', comic_name)
+        shutil.rmtree(folder, ignore_errors=True)
+        os.makedirs(folder)
 
-        a = SAdownload.downloadcomic(start_page, start_page + 20, 'TestResults')
+        a = SAdownload.downloadcomic(start_page, start_page + 20, folder)
         print(a)
         self.assertEqual(a, start_page + 20)
 
         for page in range(start_page, start_page + 20):
-            filepath = os.path.join('TestResults', SAdownload._comic_filename(page))
+            filepath = os.path.join(folder, SAdownload._comic_filename(page))
             self.assertTrue(os.path.exists(filepath))
             self.assertGreater(os.path.getsize(filepath), 8)
 
     def test_async_download(self):
+        comic_name = "SA"
         start_page = 147
-        for page in range(start_page, start_page + 20):
-            filepath = os.path.join('TestResults', SAdownload._comic_filename(page))
-            try:
-                os.remove(filepath)
-            except FileNotFoundError:
-                pass
+        folder = os.path.join('TestResults', comic_name)
+        shutil.rmtree(folder, ignore_errors=True)
+        os.makedirs(folder)
 
         loop = asyncio.get_event_loop()
-        a = loop.run_until_complete(SAdownload.async_downloadcomic(start_page, start_page + 20, 'TestResults'))
+        a = loop.run_until_complete(SAdownload.async_downloadcomic(start_page, start_page + 20, folder=folder))
         print(a)
         loop.close()
         self.assertEqual(a, start_page + 20)
 
         for page in range(start_page, start_page + 20):
-            filepath = os.path.join('TestResults', SAdownload._comic_filename(page))
+            filepath = os.path.join(folder, SAdownload._comic_filename(page))
             self.assertTrue(os.path.exists(filepath))
             self.assertGreater(os.path.getsize(filepath), 8)
 
