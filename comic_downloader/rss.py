@@ -128,19 +128,3 @@ class RSSDB:
                     where id=?""",
                     (rss_id,)
                 )
-
-def service_db():
-    """Обслуживание БД"""
-    return RSSDB(DB_NAME).service_db()
-
-def get_db():
-    """Получить данные из БД"""
-    return RSSDB(DB_NAME).get_db().raw
-
-def set_last_num(rss_id: int, last_num: int):
-    """Обновить номер первого непрочитанного"""
-    return RSSDB(DB_NAME).set_last_num(rss_id, last_num)
-
-def set_last_chk(rss_id: int):
-    """Обновить время последней проверки"""
-    return RSSDB(DB_NAME).set_last_chk(rss_id)

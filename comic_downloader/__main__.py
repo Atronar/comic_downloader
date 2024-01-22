@@ -10,42 +10,45 @@ def main():
     db = rss.RSSDB(rss.DB_NAME)
     db.service_db()
 
-    rss_list = db.get_db().raw
-    procs=[]
+    rss_list = db.get_db()
+    procs = []
 
+    procs_temp_len = len(procs)
     # Sequantial Art
-    procs.append(sp.run(f'python SAdownload.py {rss_list[0][4]} -folder "{rss_list[0][3]}"'))
+    rss_item = rss_list[0]
+    procs.append(sp.run(f'python SAdownload.py {rss_item.last_num} -folder "{rss_item.dir}"'))
     print("Процесс SA добавлен")
-    if procs[0].returncode > rss_list[0][4]:
-        db.set_last_num(1, procs[0].returncode)
-        toaster.show_toast("RSS", f"Обновление: {rss_list[0][1]}")
+    if procs[0].returncode > rss_item.last_num:
+        db.set_last_num(rss_item.id, procs[0].returncode)
+        toaster.show_toast("RSS", f"Обновление: {rss_item.name}")
     else:
-        db.set_last_chk(1)
+        db.set_last_chk(rss_item.id)
     print("Процесс SA завершён")
 
+    procs_temp_len = len(procs)
     # Acomics
     for rss_item in rss_list[1:]:
         try:
             procs.append(
                 sp.Popen(
-                    f'python acomicsdownload.py {rss_item[2]} {rss_item[4]} '
-                    f'-folder "{rss_item[3]}"'
-                    f'{" -desc" if str(rss_item[7])=="True" else ""}'
-                    f'{" -imgtitle" if str(rss_item[8])=="True" else ""}'
+                    f'python acomicsdownload.py {rss_item.url} {rss_item.last_num} '
+                    f'-folder "{rss_item.dir}"'
+                    f'{" -desc" if rss_item.desc else ""}'
+                    f'{" -imgtitle" if rss_item.imgtitle else ""}'
                 )
             )
-            print(f"Процесс {rss_item[1]} добавлен")
+            print(f"Процесс {rss_item.name} добавлен")
         except urllib.error.URLError as err:
             print(err)
 
     for rss_item in rss_list[1:]:
-        procs[rss_item[0]-1].wait()
-        if procs[rss_item[0]-1].returncode > rss_item[4]:
-            db.set_last_num(rss_item[0], procs[rss_item[0]-1].returncode)
-            toaster.show_toast("RSS", f"Обновление: {rss_item[1]}")
+        procs[rss_item.id-procs_temp_len].wait()
+        if procs[rss_item.id-procs_temp_len].returncode > rss_item.last_num:
+            db.set_last_num(rss_item.id, procs[rss_item.id-procs_temp_len].returncode)
+            toaster.show_toast("RSS", f"Обновление: {rss_item.name}")
         else:
-            db.set_last_chk(rss_item[0])
-        print(f"Процесс {rss_item[1]} завершён")
+            db.set_last_chk(rss_item.id)
+        print(f"Процесс {rss_item.name} завершён")
 
 if __name__ == '__main__':
     main()
