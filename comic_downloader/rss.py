@@ -5,7 +5,7 @@ from typing import Iterable, Self, overload
 
 DB_NAME = "rss.db"
 
-row_tuple = tuple[int, str, str, str, int, str, str, str|int, str|int]
+row_tuple = tuple[int, str, str, str, int, str, str, str|int, str|int, str]
 
 class RSSRow:
     """Строка данных из БД"""
@@ -45,6 +45,9 @@ class RSSRow:
         else:
             self.imgtitle = data[8].lower()=="true"
 
+        self.exec_module_path: str = data[9]
+        """Путь к исполняемому файлу, производящему скачивание"""
+
     @property
     def raw(self) -> row_tuple:
         return (
@@ -56,7 +59,8 @@ class RSSRow:
             self.last_chk.isoformat(sep=" "),
             self.last_upd.isoformat(sep=" "),
             str(self.desc),
-            str(self.imgtitle)
+            str(self.imgtitle),
+            self.exec_module_path
         )
 
     def __str__(self):
