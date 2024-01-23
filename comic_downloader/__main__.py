@@ -13,24 +13,8 @@ def main():
     rss_list = db.get_db()
     procs: dict[int, sp.Popen] = {}
 
-    # Sequantial Art
-    rss_item = rss_list[0]
-    procs[rss_item.id] = (
-        sp.Popen(
-            f'python "{rss_item.exec_module_path}" "{rss_item.url}" {rss_item.last_num} '
-            f'-folder "{rss_item.dir}"'
-        )
-    )
-    print(f"Процесс {rss_item.name} добавлен")
-    if procs[rss_item.id].returncode > rss_item.last_num:
-        db.set_last_num(rss_item.id, procs[rss_item.id].returncode)
-        toaster.show_toast("RSS", f"Обновление: {rss_item.name}")
-    else:
-        db.set_last_chk(rss_item.id)
-    print(f"Процесс {rss_item.name} завершён")
-
-    # Acomics
-    for rss_item in rss_list[1:]:
+    # Добавление задач
+    for rss_item in rss_list:
         try:
             procs[rss_item.id] = (
                 sp.Popen(
@@ -45,7 +29,8 @@ def main():
             print(err)
             raise(err)
 
-    for rss_item in rss_list[1:]:
+    # Ожидание ответов
+    for rss_item in rss_list:
         procs[rss_item.id].wait()
         if procs[rss_item.id].returncode > rss_item.last_num:
             db.set_last_num(rss_item.id, procs[rss_item.id].returncode)
