@@ -32,7 +32,7 @@ def arg_parser():
         '-last',
         nargs = '?',
         help = (
-            'Последний номер, число.'
+            'Номер последней страницы, число. '
             'Если больше возможного, то качается до последнего существующего.'
         ),
         type = int,
@@ -722,7 +722,7 @@ async def async_downloadcomic(
 
 if __name__ == '__main__':
     # Берём аргументы запуска
-    args = arg_parser().parse_args()
+    args, _ = arg_parser().parse_known_args()
 
     # Скачивание
     comic_short_name = args.comic.rsplit("/",1)[-1]

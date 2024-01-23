@@ -16,6 +16,11 @@ def arg_parser():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        'comic',
+        help = 'Ссылка на главную страницу комикса',
+        type = str
+    )
+    parser.add_argument(
         'first',
         nargs = '?',
         help = 'Номер первой страницы, число',
@@ -395,7 +400,7 @@ async def async_downloadcomic(
 
 if __name__ == '__main__':
     # Берём аргументы запуска
-    args = arg_parser().parse_args()
+    args, _ = arg_parser().parse_known_args()
 
     # Скачивание
     r = downloadcomic(
