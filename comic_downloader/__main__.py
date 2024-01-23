@@ -27,7 +27,7 @@ def main():
             print(f"Процесс {rss_item.name} добавлен")
         except urllib.error.URLError as err:
             print(err)
-            raise(err)
+            raise err
 
     # Ожидание ответов
     for rss_item in rss_list:

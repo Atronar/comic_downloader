@@ -5,11 +5,11 @@ from typing import Iterable, Self, overload
 
 DB_NAME = "rss.db"
 
-row_tuple = tuple[int, str, str, str, int, str, str, str|int, str|int, str]
+RowTuple = tuple[int, str, str, str, int, str, str, str|int, str|int, str]
 
 class RSSRow:
     """Строка данных из БД"""
-    def __init__(self, data: row_tuple):
+    def __init__(self, data: RowTuple):
         self.id: int = data[0]
         """Идентификатор записи в БД"""
 
@@ -49,7 +49,8 @@ class RSSRow:
         """Путь к исполняемому файлу, производящему скачивание"""
 
     @property
-    def raw(self) -> row_tuple:
+    def raw(self) -> RowTuple:
+        """Возврат кортежа «чистых» данных, как они должны храниться в БД"""
         return (
             self.id,
             self.name,
@@ -83,11 +84,12 @@ class RSSRow:
 
 class RSSData:
     """Данные из БД"""
-    def __init__(self, data: Iterable[row_tuple|RSSRow]):
+    def __init__(self, data: Iterable[RowTuple|RSSRow]):
         self.data = [RSSRow(row) if isinstance(row, tuple) else row for row in data]
 
     @property
-    def raw(self) -> list[row_tuple]:
+    def raw(self) -> list[RowTuple]:
+        """Возврат «чистых» данных, как они должны храниться в БД"""
         return [row.raw for row in self.data]
 
     def __str__(self):
