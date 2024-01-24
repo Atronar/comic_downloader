@@ -13,8 +13,8 @@ from bs4 import BeautifulSoup, PageElement, SoupStrainer, Tag
 from .modules.base_downloader import BaseDownloader, BasePageDownloader
 
 class Downloader(BaseDownloader):
-    _comic_domain: Final[str] = "https://acomics.ru"
-    _request_headers: Final = {'Cookie': 'ageRestrict=100'}
+    _COMIC_DOMAIN: Final[str] = "https://acomics.ru"
+    _REQUEST_HEADERS: Final = {'Cookie': 'ageRestrict=100'}
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -24,7 +24,7 @@ class Downloader(BaseDownloader):
 
     @property
     def _comic_main_page_link(self) -> str:
-        return f"{self._comic_domain}/{self.comic_name}"
+        return f"{self._COMIC_DOMAIN}/{self.comic_name}"
 
     def html_to_text(self, elements_list: Iterable[PageElement]|Tag) -> str:
         """Преобразование списка html-элементов страницы в более читаемый вид
@@ -84,7 +84,7 @@ class Downloader(BaseDownloader):
 
     def find_last(self) -> int:
         # Устанавливаем куку для обхода ограничения возраста
-        req = urllib.request.Request(self._comic_main_page_link, headers=self._request_headers)
+        req = urllib.request.Request(self._comic_main_page_link, headers=self._REQUEST_HEADERS)
 
         # На самой странице ищем ссылку, указывающую на чтение с конца
         with urllib.request.urlopen(req) as file:
@@ -116,7 +116,7 @@ class Downloader(BaseDownloader):
         async with _request(
             "GET",
             self._comic_main_page_link,
-            headers = self._request_headers
+            headers = self._REQUEST_HEADERS
         ) as file:
             read_menu = BeautifulSoup(
                 await file.read(),
@@ -201,7 +201,7 @@ class PageDownloader(BasePageDownloader, Downloader):
     def _comic_get_content_page(self) -> BeautifulSoup:
         """Получение html-контента, содержащего всю необходимую информцию"""
         # Устанавливаем куку для обхода ограничения возраста
-        req = urllib.request.Request(self._comic_file_page_link, headers=self._request_headers)
+        req = urllib.request.Request(self._comic_file_page_link, headers=self._REQUEST_HEADERS)
 
         with urllib.request.urlopen(req) as file:
             self.content = BeautifulSoup(
@@ -224,7 +224,7 @@ class PageDownloader(BasePageDownloader, Downloader):
 
         async with _request('GET',
             self._comic_file_page_link,
-            headers = self._request_headers
+            headers = self._REQUEST_HEADERS
         ) as file:
             content_page = BeautifulSoup(
                 await file.read(),
@@ -246,7 +246,7 @@ class PageDownloader(BasePageDownloader, Downloader):
 
         img = self.content.find("img", "issue")
         if isinstance(img, Tag) and (src := img.attrs.get('src', None)):
-            return f"{self._comic_domain}{src}"
+            return f"{self._COMIC_DOMAIN}{src}"
         raise ValueError(self.content)
 
     def _comic_filename(self, ext: str=".jpg") -> str:

@@ -4,6 +4,7 @@ https://www.collectedcurios.com/sequentialart.php
 
 import os
 import sys
+from typing import Final
 import urllib.request
 import asyncio
 import aiofile
@@ -12,11 +13,11 @@ import requests
 from .modules.base_downloader import BaseDownloader, BasePageDownloader
 
 class Downloader(BaseDownloader):
-    _comic_domain: str = "https://www.collectedcurios.com"
+    _COMIC_DOMAIN: Final[str] = "https://www.collectedcurios.com"
 
     @property
     def _comic_main_page_link(self) -> str:
-        return f"{self._comic_domain}/sequentialart.php"
+        return f"{self._COMIC_DOMAIN}/sequentialart.php"
 
     def find_last(self, force_add_mode: bool=False) -> int:
         """Поиск номера следующей за последней доступной страницы комикса на сервере
@@ -239,7 +240,7 @@ class PageDownloader(BasePageDownloader, Downloader):
 
     @property
     def _comic_file_link(self) -> str:
-        return f"{self._comic_domain}/{self._comic_page_title}_small.jpg"
+        return f"{self._COMIC_DOMAIN}/{self._comic_page_title}_small.jpg"
 
     @property
     def _comic_filename(self) -> str:

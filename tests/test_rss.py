@@ -15,6 +15,6 @@ class Test_test_rss(unittest.TestCase):
         a = rss.RSSDB(rss.DB_NAME).get_db()
         b = a.data
         print(b)
-
+        
 if __name__ == '__main__':
     unittest.main()
