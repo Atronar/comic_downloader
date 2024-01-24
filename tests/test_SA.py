@@ -6,18 +6,20 @@ import os
 
 class Test_test_SA(unittest.TestCase):
     def test_find_last(self):
-        a = SAdownload.find_last()
+        downloader = SAdownload.Downloader()
+        a = downloader.find_last()
         print(a)
-        last_post = 1244
+        last_post = 1245
         self.assertGreaterEqual(a, last_post)
         self.assertEqual(a, last_post, "Обнови last_post в тесте на актуальный")
 
     def test_simple_functions(self):
-        a = SAdownload._comic_file_link(47)
+        downloader = SAdownload.Downloader()
+        a = downloader._comic_file_link(47)
         print(a)
-        self.assertEqual(a, "http://www.collectedcurios.com/SA_0047_small.jpg")
+        self.assertEqual(a, "https://www.collectedcurios.com/SA_0047_small.jpg")
 
-        a = SAdownload._comic_filename(47)
+        a = downloader._comic_filename(47)
         print(a)
         self.assertEqual(a, "SA_0047_small.jpg")
 
@@ -27,12 +29,13 @@ class Test_test_SA(unittest.TestCase):
         folder = os.path.join('TestResults', comic_name)
         shutil.rmtree(folder, ignore_errors=True)
         os.makedirs(folder)
-        filepath = os.path.join(folder, SAdownload._comic_filename(page))
+        downloader = SAdownload.Downloader(folder=folder)
+        filepath = os.path.join(folder, downloader._comic_filename(page))
         try:
             os.remove(filepath)
         except FileNotFoundError:
             pass
-        a = SAdownload.download_comic_page(page, folder)
+        a = downloader.download_comic_page(page)
         self.assertTrue(os.path.exists(filepath))
         self.assertGreater(os.path.getsize(filepath), 8)
 
@@ -43,12 +46,13 @@ class Test_test_SA(unittest.TestCase):
         shutil.rmtree(folder, ignore_errors=True)
         os.makedirs(folder)
 
-        a = SAdownload.downloadcomic(start_page, start_page + 20, folder)
+        downloader = SAdownload.Downloader(first=start_page, last=start_page + 20, folder=folder)
+        a = downloader.downloadcomic()
         print(a)
         self.assertEqual(a, start_page + 20)
 
         for page in range(start_page, start_page + 20):
-            filepath = os.path.join(folder, SAdownload._comic_filename(page))
+            filepath = os.path.join(folder, downloader._comic_filename(page))
             self.assertTrue(os.path.exists(filepath))
             self.assertGreater(os.path.getsize(filepath), 8)
 
@@ -60,13 +64,14 @@ class Test_test_SA(unittest.TestCase):
         os.makedirs(folder)
 
         loop = asyncio.get_event_loop()
-        a = loop.run_until_complete(SAdownload.async_downloadcomic(start_page, start_page + 20, folder=folder))
+        downloader = SAdownload.Downloader(first=start_page, last=start_page + 20, folder=folder)
+        a = loop.run_until_complete(downloader.async_downloadcomic())
         print(a)
         loop.close()
         self.assertEqual(a, start_page + 20)
 
         for page in range(start_page, start_page + 20):
-            filepath = os.path.join(folder, SAdownload._comic_filename(page))
+            filepath = os.path.join(folder, downloader._comic_filename(page))
             self.assertTrue(os.path.exists(filepath))
             self.assertGreater(os.path.getsize(filepath), 8)
 
