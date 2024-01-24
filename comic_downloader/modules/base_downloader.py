@@ -128,7 +128,7 @@ class BaseDownloader(ABC):
             text = text.replace("  ", " ")
         while "\n\n\n" in text:
             text = text.replace("\n\n\n", "\n\n")
-        return text
+        return text.strip()
 
     @staticmethod
     def make_safe_filename(filename: str) -> str:
