@@ -10,7 +10,7 @@ import asyncio
 import aiofile
 import aiohttp
 import requests
-from .modules.base_downloader import BaseDownloader, BasePageDownloader
+from base_downloader import BaseDownloader, BasePageDownloader
 
 class Downloader(BaseDownloader):
     _COMIC_DOMAIN: Final[str] = "https://www.collectedcurios.com"
