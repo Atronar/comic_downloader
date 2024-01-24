@@ -187,6 +187,9 @@ class Downloader(BaseDownloader):
         if not self.last:
             self.last = self.find_last()
 
+        if self.first >= self.last:
+            return self.last
+
         # Загрузчик страниц
         page_downloader = PageDownloader(**self._params)
 
@@ -203,6 +206,9 @@ class Downloader(BaseDownloader):
         # Если последняя страница не указана, то узнаём её, собственно, номер
         if not self.last:
             self.last = self.find_last()
+
+        if self.first >= self.last:
+            return self.last
 
         # Скачивание
         async with aiohttp.ClientSession() as session:

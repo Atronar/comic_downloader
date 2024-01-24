@@ -10,7 +10,7 @@ import asyncio
 import aiofile
 import aiohttp
 from bs4 import BeautifulSoup, PageElement, SoupStrainer, Tag
-from .modules.base_downloader import BaseDownloader, BasePageDownloader
+from base_downloader import BaseDownloader, BasePageDownloader
 
 class Downloader(BaseDownloader):
     _COMIC_DOMAIN: Final[str] = "https://acomics.ru"
@@ -146,6 +146,9 @@ class Downloader(BaseDownloader):
         else:
             self.last = min(self.last, self.find_last())
 
+        if self.first >= self.last:
+            return self.last
+
         # Загрузчик страниц
         page_downloader = PageDownloader(**self._params)
 
@@ -165,6 +168,9 @@ class Downloader(BaseDownloader):
                 self.last = await self.async_find_last(async_session=session)
             else:
                 self.last = min(self.last, await self.async_find_last(async_session=session))
+
+            if self.first >= self.last:
+                return self.last
 
             # Скачивание
             # Создание списка задач
@@ -388,4 +394,4 @@ if __name__ == '__main__':
     # Скачивание
     r = downloader.downloadcomic()
     # Возвращаемое значение — номер новой нескачанной страницы
-    sys.exit(r)
+    print(r)
