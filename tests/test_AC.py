@@ -8,14 +8,16 @@ import os
 
 class Test_test_AC(unittest.TestCase):
     def test_find_last(self):
-        a = acomicsdownload.find_last("~romac")
+        page_downloader = acomicsdownload.PageDownloader(comic_name="~romac")
+        a = page_downloader.find_last()
         print(a)
         last_post = 121
         self.assertGreaterEqual(a, last_post)
         self.assertEqual(a, last_post, "Обнови last_post в тесте на актуальный")
 
     def test_async_find_last(self):
-        a = asyncio.run(acomicsdownload.async_find_last("~romac"))
+        page_downloader = acomicsdownload.PageDownloader(comic_name="~romac")
+        a = asyncio.run(page_downloader.async_find_last())
         print(a)
         last_post = 121
         self.assertGreaterEqual(a, last_post)
@@ -23,14 +25,15 @@ class Test_test_AC(unittest.TestCase):
 
     def test_simple_functions(self):
         comic_name = "~romac"
-        htmlpage = acomicsdownload._comic_get_content_page(comic_name, 47)
-        
-        a = acomicsdownload._comic_file_link(htmlpage)
+        page_downloader = acomicsdownload.PageDownloader(47, comic_name=comic_name)
+        htmlpage = page_downloader._comic_get_content_page()
+
+        a = page_downloader._comic_file_link
         print(a)
         self.assertEqual(a, "https://acomics.ru/upload/!c/alexiuss/romac/000047-1uxwo4fk9t.gif")
 
-        title = acomicsdownload._comic_page_title(htmlpage)
-        a = acomicsdownload._comic_filename(47, title)
+        title = page_downloader._comic_page_title
+        a = page_downloader._comic_filename()
         #print(a)
         self.assertEqual(a, "47 - [ Концептология ] ： Стиральния.jpg")
 
@@ -38,18 +41,24 @@ class Test_test_AC(unittest.TestCase):
         comic_name = "~romac"
         page = 2
         folder = os.path.join('TestResults', comic_name)
+        page_downloader = acomicsdownload.PageDownloader(
+            page,
+            comic_name=comic_name,
+            folder=folder,
+            is_write_img_description=True,
+            is_write_description=True
+        )
         shutil.rmtree(folder, ignore_errors=True)
         os.makedirs(folder)
-        
-        title = "[ Введение ] - в котором Чарльз встречает самодержца пустоши"
-        filepath = os.path.join(folder, acomicsdownload._comic_filename(page, title=title))
-        filepath_desc = os.path.join(folder, acomicsdownload._comic_filename(page, title=title, ext=".txt"))
+
+        filepath = os.path.join(folder, page_downloader._comic_filename())
+        filepath_desc = os.path.join(folder, page_downloader._comic_filename(ext=".txt"))
         try:
             os.remove(filepath)
             os.remove(filepath_desc)
         except FileNotFoundError:
             pass
-        a = acomicsdownload.download_comic_page(comic_name, page, folder=folder)
+        a = page_downloader.download_comic_page()
         self.assertTrue(os.path.exists(filepath))
         self.assertGreater(os.path.getsize(filepath), 8)
         self.assertTrue(os.path.exists(filepath_desc))
@@ -59,18 +68,24 @@ class Test_test_AC(unittest.TestCase):
         comic_name = "~romac"
         page = 2
         folder = os.path.join('TestResults', comic_name)
+        page_downloader = acomicsdownload.PageDownloader(
+            page,
+            comic_name=comic_name,
+            folder=folder,
+            is_write_img_description=True,
+            is_write_description=True
+        )
         shutil.rmtree(folder, ignore_errors=True)
         os.makedirs(folder)
-        
-        title = "[ Введение ] - в котором Чарльз встречает самодержца пустоши"
-        filepath = os.path.join(folder, acomicsdownload._comic_filename(page, title=title))
-        filepath_desc = os.path.join(folder, acomicsdownload._comic_filename(page, title=title, ext=".txt"))
+
+        filepath = os.path.join(folder, page_downloader._comic_filename())
+        filepath_desc = os.path.join(folder, page_downloader._comic_filename(ext=".txt"))
         try:
             os.remove(filepath)
             os.remove(filepath_desc)
         except FileNotFoundError:
             pass
-        a = asyncio.run(acomicsdownload._async_download_comic_page(comic_name, page, folder=folder))
+        a = asyncio.run(page_downloader.async_download_comic_page())
         self.assertTrue(os.path.exists(filepath))
         self.assertGreater(os.path.getsize(filepath), 8)
         self.assertTrue(os.path.exists(filepath_desc))
@@ -80,10 +95,19 @@ class Test_test_AC(unittest.TestCase):
         comic_name = "~the-Last-Demons-of-Tolochin"
         start_page = 47
         folder = os.path.join('TestResults', comic_name)
+        page_downloader = acomicsdownload.Downloader(
+            comic_name=comic_name,
+            first=start_page,
+            last=start_page + 20,
+            folder=folder,
+            is_write_img_description=True,
+            is_write_description=True,
+            use_async=False
+        )
         shutil.rmtree(folder, ignore_errors=True)
         os.makedirs(folder)
 
-        a = acomicsdownload.downloadcomic(comic_name, start_page, start_page + 20, folder=folder, use_async=False)
+        a = page_downloader.downloadcomic()
         print(a)
         self.assertEqual(a, start_page + 20)
 
@@ -95,15 +119,23 @@ class Test_test_AC(unittest.TestCase):
         comic_name = "~the-Last-Demons-of-Tolochin"
         start_page = 47
         folder = os.path.join('TestResults', comic_name)
+        page_downloader = acomicsdownload.Downloader(
+            comic_name=comic_name,
+            first=start_page,
+            last=start_page + 20,
+            folder=folder,
+            is_write_img_description=True,
+            is_write_description=True
+        )
         shutil.rmtree(folder, ignore_errors=True)
         os.makedirs(folder)
 
         loop = asyncio.get_event_loop()
-        a = loop.run_until_complete(acomicsdownload.async_downloadcomic(comic_name, start_page, start_page + 20, folder=folder))
+        a = loop.run_until_complete(page_downloader.async_downloadcomic())
         print(a)
         loop.close()
         self.assertEqual(a, start_page + 20)
-        
+
         for file in os.scandir(folder):
             self.assertGreater(file.stat().st_size, 8)
         self.assertEqual(len(list(Path(folder).glob("*.jpg"))), 20)
