@@ -50,6 +50,18 @@ class BaseDownloader(ABC):
             self.use_async = use_async
 
     @property
+    def _params(self):
+        return dict({
+            "comic_name": self.comic_name,
+            "first": self.first,
+            "last": self.last,
+            "is_write_description": self.is_write_description,
+            "is_write_img_description": self.is_write_img_description,
+            "folder": self.folder,
+            "use_async": self.use_async
+        })
+
+    @property
     def arg_parser(self) -> argparse.ArgumentParser:
         """Парсер аргументов командной строки
         """

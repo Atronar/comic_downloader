@@ -13,7 +13,7 @@ from .modules.base_downloader import BaseDownloader, BasePageDownloader
 
 class Downloader(BaseDownloader):
     _comic_domain: str = "https://www.collectedcurios.com"
-    
+
     @property
     def _comic_main_page_link(self) -> str:
         return f"{self._comic_domain}/sequentialart.php"
@@ -149,7 +149,7 @@ class Downloader(BaseDownloader):
 
     async def async_find_last(
         self,
-        async_session: None=None, 
+        async_session: None=None,
         force_add_mode: bool=False
     ) -> int:
         """Поиск номера следующей за последней доступной страницы комикса на сервере
@@ -185,17 +185,9 @@ class Downloader(BaseDownloader):
         # Установка последней страницы при её отсутствии
         if not self.last:
             self.last = self.find_last()
-        
+
         # Загрузчик страниц
-        page_downloader = PageDownloader(
-            comic_name = self.comic_name,
-            first = self.first,
-            last = self.last,
-            is_write_description = self.is_write_description,
-            is_write_img_description = self.is_write_img_description,
-            folder = self.folder,
-            use_async = self.use_async
-        )
+        page_downloader = PageDownloader(**self._params)
 
         # Последовательно скачиваем страницы,
         # запоминаем, на какой странице необходимо начинать следующее скачивание
@@ -217,16 +209,7 @@ class Downloader(BaseDownloader):
             tasks = []
             for page in range(self.first, self.last):
                 # Загрузчик страниц
-                page_downloader = PageDownloader(
-                    page,
-                    comic_name = self.comic_name,
-                    first = self.first,
-                    last = self.last,
-                    is_write_description = self.is_write_description,
-                    is_write_img_description = self.is_write_img_description,
-                    folder = self.folder,
-                    use_async = self.use_async
-                )
+                page_downloader = PageDownloader(page, **self._params)
                 tasks.append(page_downloader.async_download_comic_page(session=session))
             # Запуск задач
             results = await asyncio.gather(*tasks)
