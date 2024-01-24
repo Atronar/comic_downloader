@@ -8,14 +8,14 @@ import aiohttp
 
 class BaseDownloader(ABC):
     def __init__(
-        self,
+        self, *,
         comic_name: str|None = None,
         first: int|None = None,
         last: int|None = None,
         is_write_description: bool|None = None,
         is_write_img_description: bool|None = None,
         folder: str|os.PathLike|None = None,
-        use_async: bool|None = None,
+        use_async: bool|None = None
     ):
         args, _ = self.arg_parser.parse_known_args()
 
@@ -104,37 +104,9 @@ class BaseDownloader(ABC):
     def _comic_main_page_link(self) -> str:
         """Получение ссылки на главную страницу комикса"""
 
-    @abstractmethod
-    def _comic_file_page_link(self, page: int|str) -> str:
-        """Получение ссылки на страницу комикса"""
-
-    @property
-    @abstractmethod
-    def _comic_file_link(self) -> str:
-        """Получение ссылки на файл страницы комикса на сервере"""
-
     def _check_corrects_file(self, filepath: str|os.PathLike) -> bool:
         """Проверка файла на существование и корректность"""
         return os.path.exists(filepath) and os.path.getsize(filepath) > 8
-
-    @abstractmethod
-    def _comic_page_title(self) -> str:
-        """Получение заголовка страницы комикса"""
-
-    @abstractmethod
-    def _comic_page_description(self) -> str|None:
-        """Получение описания страницы комикса
-
-        Return
-        ------
-        str
-            Текст описания
-            Если is_write_description и is_write_img_description установлены в True,
-            то они разделяются пустыми строками и строкой с 5 дефисами
-
-        None
-            Если описания нет, возвращается None
-        """
 
     @staticmethod
     def _clear_text_multiplespaces(text: str) -> str:
@@ -202,53 +174,6 @@ class BaseDownloader(ABC):
         """
 
     @abstractmethod
-    def download_comic_page(
-        self,
-        page: int
-    ) -> int|None:
-        """Скачивание одной страницы комикса
-
-        Parameters
-        ----------
-        page: int | str
-            Номер скачиваемой страницы
-
-        Return
-        ------
-        int
-            Номер страницы, которая только что успешно скачалась, либо
-
-        None
-            Маркер, что скачивание не удалось
-        """
-
-    @abstractmethod
-    async def async_download_comic_page(
-        self,
-        page: int,
-        session: aiohttp.ClientSession|None = None
-    ) -> int|None:
-        """Асинхронное скачивание одной страницы комикса
-
-        Parameters
-        ----------
-        page: int | str
-            Номер скачиваемой страницы
-
-        session: ClientSession | None
-            Сессия для проведения асинхронных запросов
-            Если не передана, то будет производиться обычное скачивание
-
-        Return
-        ------
-        int
-            Номер страницы, которая только что успешно скачалась, либо
-
-        None
-            Маркер, что скачивание не удалось
-        """
-
-    @abstractmethod
     def downloadcomic(self) -> int:
         """Скачивание заданных страниц комикса от first до last
 
@@ -272,4 +197,92 @@ class BaseDownloader(ABC):
             При следующей проверке в аргумент first надо поместить именно это значение
 
             Если на сервере есть страницы с 1 по 10, но 11 ещё не вышла, то вернётся именно 11
+        """
+
+class BasePageDownloader(BaseDownloader):
+    """Загрузчик одной страницы комикса
+
+    Parameters
+    ----------
+    page: int | str
+        Номер скачиваемой страницы
+    """
+    def __init__(self, page: int|str|None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.page = page
+
+    @property
+    @abstractmethod
+    def _comic_file_page_link(self) -> str:
+        """Получение ссылки на страницу комикса"""
+
+    @property
+    @abstractmethod
+    def _comic_file_link(self) -> str:
+        """Получение ссылки на файл страницы комикса на сервере"""
+
+    @property
+    @abstractmethod
+    def _comic_filename(self) -> str:
+        """Получение имени файла страницы комикса"""
+
+    @property
+    @abstractmethod
+    def _comic_page_title(self) -> str:
+        """Получение заголовка страницы комикса"""
+
+    @property
+    @abstractmethod
+    def _comic_page_description(self) -> str|None:
+        """Получение описания страницы комикса
+
+        Return
+        ------
+        str
+            Текст описания
+            Если is_write_description и is_write_img_description установлены в True,
+            то они разделяются пустыми строками и строкой с 5 дефисами
+
+        None
+            Если описания нет, возвращается None
+        """
+
+    @abstractmethod
+    def download_comic_page(self) -> int|None:
+        """Скачивание одной страницы комикса
+
+        Parameters
+        ----------
+        page: int | str
+            Номер скачиваемой страницы
+
+        Return
+        ------
+        int
+            Номер страницы, которая только что успешно скачалась, либо
+
+        None
+            Маркер, что скачивание не удалось
+        """
+
+    @abstractmethod
+    async def async_download_comic_page(
+        self,
+        session: aiohttp.ClientSession|None = None
+    ) -> int|None:
+        """Асинхронное скачивание одной страницы комикса
+
+        Parameters
+        ----------
+        session: ClientSession | None
+            Сессия для проведения асинхронных запросов
+            Если не передана, то будет производиться обычное скачивание
+
+        Return
+        ------
+        int
+            Номер страницы, которая только что успешно скачалась, либо
+
+        None
+            Маркер, что скачивание не удалось
         """
