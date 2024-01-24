@@ -307,4 +307,4 @@ if __name__ == '__main__':
     # Скачивание
     r = downloader.downloadcomic()
     # Возвращаемое значение — номер новой нескачанной страницы
-    sys.exit(r)
+    print(r)

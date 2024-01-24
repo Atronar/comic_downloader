@@ -5,6 +5,14 @@ from win10toast import ToastNotifier
 
 import rss
 
+def get_result(out: bytes, err: bytes) -> int:
+    if err:
+        return -1
+    try:
+        return int(out)
+    except ValueError:
+        return -1
+
 def main():
     toaster = ToastNotifier()
     db = rss.RSSDB(rss.DB_NAME)
@@ -21,7 +29,8 @@ def main():
                     f'python "{rss_item.exec_module_path}" "{rss_item.url}" {rss_item.last_num} '
                     f'-folder "{rss_item.dir}"'
                     f'{" -desc" if rss_item.desc else ""}'
-                    f'{" -imgtitle" if rss_item.imgtitle else ""}'
+                    f'{" -imgtitle" if rss_item.imgtitle else ""}',
+                    stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE
                 )
             )
             print(f"Процесс {rss_item.name} добавлен")
@@ -32,9 +41,14 @@ def main():
     # Ожидание ответов
     for rss_item in rss_list:
         procs[rss_item.id].wait()
-        if procs[rss_item.id].returncode > rss_item.last_num:
-            db.set_last_num(rss_item.id, procs[rss_item.id].returncode)
-            toaster.show_toast("RSS", f"Обновление: {rss_item.name}")
+        new_last_num = get_result(*(procs[rss_item.id].communicate()))
+        if new_last_num > rss_item.last_num:
+            db.set_last_num(rss_item.id, new_last_num)
+            toaster.show_toast(
+                "RSS", 
+                f"Обновление: {rss_item.name}\n"
+                f"Добавлена {new_last_num} страница"
+            )
         else:
             db.set_last_chk(rss_item.id)
         print(f"Процесс {rss_item.name} завершён")
