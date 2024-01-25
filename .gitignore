@@ -1,5 +1,6 @@
 /__pycache__/*
 */__pycache__/*
+*/*/__pycache__/*
 /rss.db
 /.vs/
 *.pyproj
