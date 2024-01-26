@@ -1,89 +1,98 @@
+from collections import UserDict
 from datetime import datetime
 import os
 import sqlite3
 from contextlib import closing as dbclosing
-from typing import Iterable, Self, overload
+from typing import Any, Iterable, Self, overload
 
 DB_NAME = "rss.db"
 
-RowTuple = tuple[int, str, str, str, int, str, str, str|int, str|int, str, str|int]
+class RSSRow(UserDict):
+    _KEYS = (
+        'id', 
+        'name', 
+        'url', 
+        'dir', 
+        'last_num', 
+        'last_chk', 
+        'last_upd', 
+        'desc', 
+        'imgtitle', 
+        'exec_module_path', 
+        'ended',
+    )
 
-class RSSRow:
     """Строка данных из БД"""
-    def __init__(self, data: RowTuple):
-        self.id: int = data[0]
+    def __init__(self, data: sqlite3.Row|dict[str, Any]|tuple[Any, ...]):
+        self.data: dict[str, Any]
+        if isinstance(data, dict):
+            self.data = dict(zip(data.keys(), data.values()))
+        elif isinstance(data, tuple):
+            self.data = dict(zip(self._KEYS, data))
+        else:
+            self.data = dict(zip(data.keys(), tuple(data)))
+
+        self.id: int = self.data['id']
         """Идентификатор записи в БД"""
 
-        self.name: str = data[1]
+        self.name: str = self.data['name']
         """Название комикса"""
 
-        self.url: str = data[2]
+        self.url: str = self.data['url']
         """Ссылка на комикс"""
 
-        self.dir: str = self.make_safe_path(data[3])
+        self.dir: str = self.make_safe_path(self.data['dir'])
         """Путь для скачивания"""
 
         self.last_num: int
         """Номер выпуска, с которого необходимо производить обновление"""
-        if data[4] > 0:
-            self.last_num = data[4]
+        if self.data['last_num'] > 0:
+            self.last_num = self.data['last_num']
         else:
             self.last_num = 1
 
         self.last_chk: datetime
         """Время последней проверки"""
-        if data[5] is None:
+        if self.data['last_chk'] is None:
             self.last_chk = datetime.fromordinal(1)
         else:
-            self.last_chk = datetime.fromisoformat(data[5])
+            self.last_chk = datetime.fromisoformat(self.data['last_chk'])
 
         self.last_upd: datetime
         """Время последнего успешного обновления"""
-        if data[6] is None:
+        if self.data['last_upd'] is None:
             self.last_upd = datetime.fromordinal(1)
         else:
-            self.last_upd = datetime.fromisoformat(data[6])
+            self.last_upd = datetime.fromisoformat(self.data['last_upd'])
 
         self.desc: bool
         """Скачивать ли описания"""
-        if isinstance(data[7], int):
-            self.desc = bool(data[7])
+        if isinstance(self.data['desc'], int):
+            self.desc = bool(self.data['desc'])
         else:
-            self.desc = str(data[7]).lower()=="true"
+            self.desc = str(self.data['desc']).lower()=="true"
 
         self.imgtitle: bool
         """Скачивать ли всплывающий текст на изображениях"""
-        if isinstance(data[8], int):
-            self.imgtitle = bool(data[8])
+        if isinstance(self.data['imgtitle'], int):
+            self.imgtitle = bool(self.data['imgtitle'])
         else:
-            self.imgtitle = str(data[8]).lower()=="true"
+            self.imgtitle = str(self.data['imgtitle']).lower()=="true"
 
-        self.exec_module_path: str = data[9]
+        self.exec_module_path: str = self.data['exec_module_path']
         """Путь к исполняемому файлу, производящему скачивание"""
 
         self.ended: bool
         """Закончен ли комикс"""
-        if isinstance(data[8], int):
-            self.ended = bool(data[10])
+        if isinstance(self.data['ended'], int):
+            self.ended = bool(self.data['ended'])
         else:
-            self.ended = str(data[10]).lower()=="true"
+            self.ended = str(self.data['ended']).lower()=="true"
 
     @property
-    def raw(self) -> RowTuple:
-        """Возврат кортежа «чистых» данных, как они должны храниться в БД"""
-        return (
-            self.id,
-            self.name,
-            self.url,
-            self.dir,
-            self.last_num,
-            self.last_chk.isoformat(sep=" "),
-            self.last_upd.isoformat(sep=" "),
-            str(self.desc),
-            str(self.imgtitle),
-            self.exec_module_path,
-            self.ended,
-        )
+    def raw(self) -> tuple:
+        """Возврат кортежа чистых данных, как они должны храниться в БД"""
+        return tuple(self.values())
 
     @staticmethod
     def make_safe_path(path: str, create_path: bool=True) -> str:
@@ -126,35 +135,43 @@ class RSSRow:
             ).rstrip()
 
     def __str__(self):
-        return str(self.__dict__)
+        return str(self.raw)
 
     def __repr__(self):
-        return f"RSSRow({repr(self.__dict__)}.values())"
+        return f"RSSRow({repr(self.data)})"
 
     def __eq__(self, other: Self) -> bool:
         return self.raw == other.raw
 
+    def __lt__(self, other: Self) -> bool:
+        return self.id < other.id
+
+    def __le__(self, other: Self) -> bool:
+        return self == other or self < other
+
+    def __gt__(self, other: Self) -> bool:
+        return self.id > other.id
+
+    def __ge__(self, other: Self) -> bool:
+        return self == other or self > other
+
     def __getitem__(self, index: int|str) -> int|str:
         if isinstance(index, int):
             return self.raw[index]
-        if isinstance(elem:=self.__dict__[index], datetime):
-            return elem.isoformat(sep=" ")
-        if isinstance(elem:=self.__dict__[index], bool):
-            return str(elem)
-        return self.__dict__[index]
+        return self.data[index]
 
 class RSSData:
     """Данные из БД"""
-    def __init__(self, data: Iterable[RowTuple|RSSRow]):
-        self.data = [RSSRow(row) if isinstance(row, tuple) else row for row in data]
+    def __init__(self, data: Iterable[sqlite3.Row|RSSRow]):
+        self.data = [row if isinstance(row, RSSRow) else RSSRow(row) for row in data]
 
     @property
-    def raw(self) -> list[RowTuple]:
+    def raw(self) -> list[tuple]:
         """Возврат «чистых» данных, как они должны храниться в БД"""
         return [row.raw for row in self.data]
 
     def __str__(self):
-        return str([row.__dict__ for row in self.data])
+        return str(self.raw)
 
     def __repr__(self):
         return f"RSSData({repr(self.data)})"
@@ -186,6 +203,7 @@ class RSSDB:
     def get_db(self) -> RSSData:
         """Получить данные из БД"""
         with dbclosing(sqlite3.connect(self.db_name)) as connection:
+            connection.row_factory = sqlite3.Row
             with connection as cursor:
                 res = cursor.execute('select * from rss_list')
                 res = res.fetchall()
