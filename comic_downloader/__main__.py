@@ -1,5 +1,6 @@
 ﻿import subprocess as sp
 import urllib.error
+import sys
 
 from win10toast import ToastNotifier
 
@@ -40,7 +41,8 @@ def main():
                     f'python "{rss_item.exec_module_path}" "{rss_item.url}" {rss_item.last_num} '
                     f'-folder "{rss_item.dir}"'
                     f'{" -desc" if rss_item.desc else ""}'
-                    f'{" -imgtitle" if rss_item.imgtitle else ""}',
+                    f'{" -imgtitle" if rss_item.imgtitle else ""}'
+                    f'{" -no-async" if "-no-async" in sys.argv else ""}',
                     stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE
                 )
             )
