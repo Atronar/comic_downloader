@@ -69,7 +69,8 @@ class RSSRow:
             self.last_upd.isoformat(sep=" "),
             str(self.desc),
             str(self.imgtitle),
-            self.exec_module_path
+            self.exec_module_path,
+            self.ended,
         )
 
     @staticmethod
