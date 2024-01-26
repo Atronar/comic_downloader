@@ -240,18 +240,30 @@ class RSSDB:
 
     def service_db(self):
         """Обслуживание БД"""
-        with dbclosing(sqlite3.connect(self.db_name)) as connection:
-            with connection as cursor:
-                cursor.execute('vacuum')
-        print(f"БД {self.db_name} успешно оптимизирована")
+        if not os.path.exists(self.db_name):
+            self.create_db()
+        else:
+            with dbclosing(sqlite3.connect(self.db_name)) as connection:
+                with connection as cursor:
+                    cursor.execute('vacuum')
+            print(f"БД {self.db_name} успешно оптимизирована")
 
     def get_db(self) -> RSSData:
         """Получить данные из БД"""
-        with dbclosing(sqlite3.connect(self.db_name)) as connection:
-            connection.row_factory = sqlite3.Row
-            with connection as cursor:
-                res = cursor.execute('select * from rss_list')
-                res = res.fetchall()
+        if not os.path.exists(self.db_name):
+            self.create_db()
+        try:
+            with dbclosing(sqlite3.connect(self.db_name)) as connection:
+                connection.row_factory = sqlite3.Row
+                with connection as cursor:
+                    res = cursor.execute('select * from rss_list')
+                    res = res.fetchall()
+        except sqlite3.OperationalError as exc:
+            if os.path.getsize(self.db_name) <= 4096:
+                os.rename(self.db_name, f"{self.db_name}.bak")
+                self.create_db()
+                return self.get_db()
+            raise exc
         return RSSData(res)
 
     def set_last_num(self, rss_id: int, last_num: int):
