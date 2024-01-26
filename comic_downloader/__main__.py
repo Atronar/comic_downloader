@@ -17,7 +17,7 @@ def get_result(out: bytes, err: bytes) -> int:
         write_log(out)
         print(err)
         return -1
-    
+
 def write_log(log: bytes, file: str='.log'):
     with open(file, 'ab') as f:
         f.write(log)
@@ -62,7 +62,7 @@ def main():
         if new_last_num > rss_item.last_num:
             db.set_last_num(rss_item.id, new_last_num)
             toaster.show_toast(
-                "RSS", 
+                "RSS",
                 f"Обновление: {rss_item.name}\n"
                 f"Добавлена {new_last_num-1} страница"
             )

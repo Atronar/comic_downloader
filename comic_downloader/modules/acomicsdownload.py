@@ -172,7 +172,8 @@ class Downloader(BaseDownloader):
             # Скачивание
             # Создание списка задач
             tasks = []
-            # reversed, так как задачи выполняются последний пришёл - первый ушёл, а нам надо по порядку
+            # reversed, так как задачи выполняются последний пришёл - первый ушёл,
+            # а нам надо по порядку
             for page in reversed(range(self.first, self.last)):
                 # Загрузчик страниц
                 page_downloader = PageDownloader(page, **self._params)

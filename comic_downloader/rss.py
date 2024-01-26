@@ -57,8 +57,7 @@ class RSSRow(UserDict):
         """Номер выпуска, с которого необходимо производить обновление"""
         if self.data['last_num'] > 0:
             return self.data['last_num']
-        else:
-            return 1
+        return 1
 
     @property
     def last_chk(self) -> datetime:
@@ -99,16 +98,14 @@ class RSSRow(UserDict):
     def _norm_datetime(value: str|None) -> datetime:
         if value:
             return datetime.fromisoformat(value)
-        else:
-            return datetime.fromordinal(1)
+        return datetime.fromordinal(1)
 
     @staticmethod
     def _norm_boolean(value: str|int|None) -> bool:
         """Скачивать ли описания"""
         if isinstance(value, int):
             return bool(value)
-        else:
-            return str(value).lower()=="true"
+        return str(value).lower()=="true"
 
     @classmethod
     def make_safe_path(cls, path: str, create_path: bool=True) -> str:
@@ -130,25 +127,25 @@ class RSSRow(UserDict):
 
     @staticmethod
     def make_safe_filename(filename: str) -> str:
-            """
-            # Преобразование имени файла в безопасное
-            # https://stackoverflow.com/questions/7406102/create-sane-safe-filename-from-any-unsafe-string
-            """
-            illegal_chars = "/\\?%*:|\"<>"
-            illegal_unprintable = {chr(c) for c in (*range(31), 127)}
-            reserved_words = {
-                'CON', 'CONIN$', 'CONOUT$', 'PRN', 'AUX', 'CLOCK$', 'NUL',
-                'COM0', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
-                'LPT0', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9',
-                'LST', 'KEYBD$', 'SCREEN$', '$IDLE$', 'CONFIG$'
-            }
-            if os.path.splitext(filename)[0].upper() in reserved_words: return f"__{filename}"
-            if set(filename)=={'.'}: return filename.replace('.', '\uff0e', 1)
-            return "".join(
-                chr(ord(c)+65248) if c in illegal_chars else c
-                for c in filename
-                if c not in illegal_unprintable
-            ).rstrip()
+        """
+        # Преобразование имени файла в безопасное
+        # https://stackoverflow.com/questions/7406102/create-sane-safe-filename-from-any-unsafe-string
+        """
+        illegal_chars = "/\\?%*:|\"<>"
+        illegal_unprintable = {chr(c) for c in (*range(31), 127)}
+        reserved_words = {
+            'CON', 'CONIN$', 'CONOUT$', 'PRN', 'AUX', 'CLOCK$', 'NUL',
+            'COM0', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
+            'LPT0', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9',
+            'LST', 'KEYBD$', 'SCREEN$', '$IDLE$', 'CONFIG$'
+        }
+        if os.path.splitext(filename)[0].upper() in reserved_words: return f"__{filename}"
+        if set(filename)=={'.'}: return filename.replace('.', '\uff0e', 1)
+        return "".join(
+            chr(ord(c)+65248) if c in illegal_chars else c
+            for c in filename
+            if c not in illegal_unprintable
+        ).rstrip()
 
     def __str__(self):
         return str(self.raw)
