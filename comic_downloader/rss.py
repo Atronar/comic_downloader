@@ -9,16 +9,16 @@ DB_NAME = "rss.db"
 
 class RSSRow(UserDict):
     _KEYS = (
-        'id', 
-        'name', 
-        'url', 
-        'dir', 
-        'last_num', 
-        'last_chk', 
-        'last_upd', 
-        'desc', 
-        'imgtitle', 
-        'exec_module_path', 
+        'id',
+        'name',
+        'url',
+        'dir',
+        'last_num',
+        'last_chk',
+        'last_upd',
+        'desc',
+        'imgtitle',
+        'exec_module_path',
         'ended',
     )
 
@@ -32,62 +32,78 @@ class RSSRow(UserDict):
         else:
             self.data = dict(zip(data.keys(), tuple(data)))
 
-        self.id: int = self.data['id']
+    @property
+    def id(self) -> int:
         """Идентификатор записи в БД"""
+        return self.data['id']
 
-        self.name: str = self.data['name']
+    @property
+    def name(self) -> str:
         """Название комикса"""
+        return self.data['name']
 
-        self.url: str = self.data['url']
+    @property
+    def url(self) -> str:
         """Ссылка на комикс"""
+        return self.data['url']
 
-        self.dir: str = self.make_safe_path(self.data['dir'])
+    @property
+    def dir(self) -> str:
         """Путь для скачивания"""
+        return self.make_safe_path(self.data['dir'])
 
-        self.last_num: int
+    @property
+    def last_num(self) -> int:
         """Номер выпуска, с которого необходимо производить обновление"""
         if self.data['last_num'] > 0:
-            self.last_num = self.data['last_num']
+            return self.data['last_num']
         else:
-            self.last_num = 1
+            return 1
 
-        self.last_chk: datetime
+    @property
+    def last_chk(self) -> datetime:
         """Время последней проверки"""
         if self.data['last_chk'] is None:
-            self.last_chk = datetime.fromordinal(1)
+            return datetime.fromordinal(1)
         else:
-            self.last_chk = datetime.fromisoformat(self.data['last_chk'])
+            return datetime.fromisoformat(self.data['last_chk'])
 
-        self.last_upd: datetime
+    @property
+    def last_upd(self) -> datetime:
         """Время последнего успешного обновления"""
         if self.data['last_upd'] is None:
-            self.last_upd = datetime.fromordinal(1)
+            return datetime.fromordinal(1)
         else:
-            self.last_upd = datetime.fromisoformat(self.data['last_upd'])
+            return datetime.fromisoformat(self.data['last_upd'])
 
-        self.desc: bool
+    @property
+    def desc(self) -> bool:
         """Скачивать ли описания"""
         if isinstance(self.data['desc'], int):
-            self.desc = bool(self.data['desc'])
+            return bool(self.data['desc'])
         else:
-            self.desc = str(self.data['desc']).lower()=="true"
+            return str(self.data['desc']).lower()=="true"
 
-        self.imgtitle: bool
+    @property
+    def imgtitle(self) -> bool:
         """Скачивать ли всплывающий текст на изображениях"""
         if isinstance(self.data['imgtitle'], int):
-            self.imgtitle = bool(self.data['imgtitle'])
+            return bool(self.data['imgtitle'])
         else:
-            self.imgtitle = str(self.data['imgtitle']).lower()=="true"
+            return str(self.data['imgtitle']).lower()=="true"
 
-        self.exec_module_path: str = self.data['exec_module_path']
+    @property
+    def exec_module_path(self) -> str:
         """Путь к исполняемому файлу, производящему скачивание"""
+        return self.data['exec_module_path']
 
-        self.ended: bool
+    @property
+    def ended(self) -> bool:
         """Закончен ли комикс"""
         if isinstance(self.data['ended'], int):
-            self.ended = bool(self.data['ended'])
+            return bool(self.data['ended'])
         else:
-            self.ended = str(self.data['ended']).lower()=="true"
+            return str(self.data['ended']).lower()=="true"
 
     @property
     def raw(self) -> tuple:
