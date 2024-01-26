@@ -23,28 +23,40 @@ class RSSRow:
         self.dir: str = self.make_safe_path(data[3])
         """Путь для скачивания"""
 
-        self.last_num: int = data[4]
+        self.last_num: int
         """Номер выпуска, с которого необходимо производить обновление"""
+        if data[4] > 0:
+            self.last_num = data[4]
+        else:
+            self.last_num = 1
 
-        self.last_chk: datetime = datetime.fromisoformat(data[5])
+        self.last_chk: datetime
         """Время последней проверки"""
+        if data[5] is None:
+            self.last_chk = datetime.fromordinal(1)
+        else:
+            self.last_chk = datetime.fromisoformat(data[5])
 
-        self.last_upd: datetime = datetime.fromisoformat(data[6])
+        self.last_upd: datetime
         """Время последнего успешного обновления"""
+        if data[6] is None:
+            self.last_upd = datetime.fromordinal(1)
+        else:
+            self.last_upd = datetime.fromisoformat(data[6])
 
         self.desc: bool
         """Скачивать ли описания"""
         if isinstance(data[7], int):
             self.desc = bool(data[7])
         else:
-            self.desc = data[7].lower()=="true"
+            self.desc = str(data[7]).lower()=="true"
 
         self.imgtitle: bool
         """Скачивать ли всплывающий текст на изображениях"""
         if isinstance(data[8], int):
             self.imgtitle = bool(data[8])
         else:
-            self.imgtitle = data[8].lower()=="true"
+            self.imgtitle = str(data[8]).lower()=="true"
 
         self.exec_module_path: str = data[9]
         """Путь к исполняемому файлу, производящему скачивание"""
