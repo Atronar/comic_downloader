@@ -6,3 +6,4 @@
 *.pyproj
 *.sln
 TestResults/
+/.log

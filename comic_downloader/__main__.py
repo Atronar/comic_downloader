@@ -7,11 +7,19 @@ import rss
 
 def get_result(out: bytes, err: bytes) -> int:
     if err:
+        write_log(err)
+        print(err)
         return -1
     try:
         return int(out)
     except ValueError:
+        write_log(out)
+        print(err)
         return -1
+    
+def write_log(log: bytes, file: str='.log'):
+    with open(file, 'ab') as f:
+        f.write(log)
 
 def main():
     toaster = ToastNotifier()
