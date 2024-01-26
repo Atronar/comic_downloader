@@ -5,7 +5,7 @@ from typing import Iterable, Self, overload
 
 DB_NAME = "rss.db"
 
-RowTuple = tuple[int, str, str, str, int, str, str, str|int, str|int, str]
+RowTuple = tuple[int, str, str, str, int, str, str, str|int, str|int, str, str|int]
 
 class RSSRow:
     """Строка данных из БД"""
@@ -47,6 +47,13 @@ class RSSRow:
 
         self.exec_module_path: str = data[9]
         """Путь к исполняемому файлу, производящему скачивание"""
+
+        self.ended: bool
+        """Закончен ли комикс"""
+        if isinstance(data[8], int):
+            self.ended = bool(data[10])
+        else:
+            self.ended = str(data[10]).lower()=="true"
 
     @property
     def raw(self) -> RowTuple:

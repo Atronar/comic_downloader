@@ -31,6 +31,9 @@ def main():
 
     # Добавление задач
     for rss_item in rss_list:
+        if rss_item.ended:
+            # Завершённые комиксы пропускаем
+            continue
         try:
             procs[rss_item.id] = (
                 sp.Popen(
@@ -48,6 +51,10 @@ def main():
 
     # Ожидание ответов
     for rss_item in rss_list:
+        if rss_item.ended:
+            # Завершённые комиксы пропускаем
+            continue
+        print(f"Скачивание {rss_item.name}")
         procs[rss_item.id].wait()
         new_last_num = get_result(*(procs[rss_item.id].communicate()))
         if new_last_num > rss_item.last_num:
