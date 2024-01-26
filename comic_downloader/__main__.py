@@ -46,7 +46,7 @@ def main():
                     stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE
                 )
             )
-            print(f"Процесс {rss_item.name} добавлен")
+            print(f"{rss_item.name} добавлен")
         except urllib.error.URLError as err:
             print(err)
             raise err
@@ -64,11 +64,11 @@ def main():
             toaster.show_toast(
                 "RSS", 
                 f"Обновление: {rss_item.name}\n"
-                f"Добавлена {new_last_num} страница"
+                f"Добавлена {new_last_num-1} страница"
             )
         else:
             db.set_last_chk(rss_item.id)
-        print(f"Процесс {rss_item.name} завершён")
+        print(f"Скачивание {rss_item.name} завершено")
 
 if __name__ == '__main__':
     main()
