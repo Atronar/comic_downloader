@@ -22,7 +22,6 @@ class Downloader(BaseDownloader):
         if not self.comic_name.startswith("~"):
             self.comic_name = f"~{self.comic_name}"
 
-    @property
     def _comic_main_page_link(self) -> str:
         return f"{self._COMIC_DOMAIN}/{self.comic_name}"
 
@@ -84,7 +83,7 @@ class Downloader(BaseDownloader):
 
     def find_last(self) -> int:
         # Устанавливаем куку для обхода ограничения возраста
-        req = urllib.request.Request(self._comic_main_page_link, headers=self._REQUEST_HEADERS)
+        req = urllib.request.Request(self._comic_main_page_link(), headers=self._REQUEST_HEADERS)
 
         # На самой странице ищем ссылку, указывающую на чтение с конца
         with urllib.request.urlopen(req) as file:
@@ -115,7 +114,7 @@ class Downloader(BaseDownloader):
         # На самой странице ищем ссылку, указывающую на чтение с конца
         async with _request(
             "GET",
-            self._comic_main_page_link,
+            self._comic_main_page_link(),
             headers = self._REQUEST_HEADERS
         ) as file:
             read_menu = BeautifulSoup(
@@ -206,7 +205,7 @@ class PageDownloader(BasePageDownloader, Downloader):
     def _comic_get_content_page(self) -> BeautifulSoup:
         """Получение html-контента, содержащего всю необходимую информцию"""
         # Устанавливаем куку для обхода ограничения возраста
-        req = urllib.request.Request(self._comic_file_page_link, headers=self._REQUEST_HEADERS)
+        req = urllib.request.Request(self._comic_file_page_link(), headers=self._REQUEST_HEADERS)
 
         with urllib.request.urlopen(req) as file:
             self.content = BeautifulSoup(
@@ -228,7 +227,7 @@ class PageDownloader(BasePageDownloader, Downloader):
             _request = aiohttp.request
 
         async with _request('GET',
-            self._comic_file_page_link,
+            self._comic_file_page_link(),
             headers = self._REQUEST_HEADERS
         ) as file:
             content_page = BeautifulSoup(
@@ -238,13 +237,11 @@ class PageDownloader(BasePageDownloader, Downloader):
             )
         return content_page
 
-    @property
     def _comic_file_page_link(self) -> str:
         if self.page is None:
             raise ValueError("page is None")
-        return f"{self._comic_main_page_link}/{self.page}"
+        return f"{self._comic_main_page_link()}/{self.page}"
 
-    @property
     def _comic_file_link(self) -> str:
         if self.content is None:
             self.content = self._comic_get_content_page()
@@ -261,11 +258,10 @@ class PageDownloader(BasePageDownloader, Downloader):
         if ext and not ext.startswith("."):
             ext = f".{ext}"
 
-        if title := self._comic_page_title:
+        if title := self._comic_page_title():
             return self.make_safe_filename(f"{self.page} - {title}{ext}")
         return self.make_safe_filename(f"{self.page}{ext}")
 
-    @property
     def _comic_page_title(self) -> str:
         if self.content is None:
             self.content = self._comic_get_content_page()
@@ -275,7 +271,6 @@ class PageDownloader(BasePageDownloader, Downloader):
             return span.get_text(strip=True).rstrip(".")
         raise ValueError(self.content)
 
-    @property
     def _comic_page_description(self) -> str|None:
         if self.content is None:
             self.content = self._comic_get_content_page()
@@ -329,12 +324,12 @@ class PageDownloader(BasePageDownloader, Downloader):
         # Перескачивать уже существующий файл не нужно
         if not self._check_corrects_file(comic_filepath):
             # Скачивание
-            urllib.request.urlretrieve(self._comic_file_link, comic_filepath)
+            urllib.request.urlretrieve(self._comic_file_link(), comic_filepath)
 
         # Перескачивать уже существующий файл описания не нужно
         if not self._check_corrects_file(comic_filepath_description):
             # Описание при странице
-            if description := self._comic_page_description:
+            if description := self._comic_page_description():
                 with open(comic_filepath_description, "w", encoding="utf-8") as file:
                     file.write(description)
 
@@ -369,14 +364,14 @@ class PageDownloader(BasePageDownloader, Downloader):
         # Перескачивать уже существующий файл не нужно
         if not self._check_corrects_file(comic_filepath):
             # Скачивание
-            async with _request("GET", self._comic_file_link) as resp:
+            async with _request("GET", self._comic_file_link()) as resp:
                 async with aiofile.async_open(comic_filepath, 'wb') as file:
                     await file.write(await resp.read())
 
         # Перескачивать уже существующий файл описания не нужно
         if not self._check_corrects_file(comic_filepath_description):
             # Описание при странице
-            if description := self._comic_page_description:
+            if description := self._comic_page_description():
                 async with aiofile.async_open(
                     comic_filepath_description,
                     "w",

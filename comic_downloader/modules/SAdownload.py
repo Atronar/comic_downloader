@@ -14,7 +14,6 @@ from base_downloader import BaseDownloader, BasePageDownloader
 class Downloader(BaseDownloader):
     _COMIC_DOMAIN: Final[str] = "https://www.collectedcurios.com"
 
-    @property
     def _comic_main_page_link(self) -> str:
         return f"{self._COMIC_DOMAIN}/sequentialart.php"
 
@@ -88,7 +87,7 @@ class Downloader(BaseDownloader):
             exists_page.page = (min_ + max_) // 2
 
         while True:
-            resp_code = self._findlast_check(exists_page._comic_file_link, session=session)
+            resp_code = self._findlast_check(exists_page._comic_file_link(), session=session)
             # Страница существует, поэтому ...
             if resp_code == 200:
                 if max_need_search:
@@ -124,7 +123,7 @@ class Downloader(BaseDownloader):
             raise ValueError("page is None")
         exists_page.page = int(exists_page.page)
         while True:
-            resp_code = self._findlast_check(exists_page._comic_file_link, session=session)
+            resp_code = self._findlast_check(exists_page._comic_file_link(), session=session)
             # Страница существует, поэтому ...
             if resp_code == 200:
                 # ... переходим к следующей
@@ -236,28 +235,23 @@ class Downloader(BaseDownloader):
         return last_success
 
 class PageDownloader(BasePageDownloader, Downloader):
-    @property
     def _comic_file_page_link(self) -> str:
         if self.page is None:
             raise ValueError("page is None")
-        return f"{self._comic_main_page_link}?s={self.page}"
+        return f"{self._comic_main_page_link()}?s={self.page}"
 
-    @property
     def _comic_file_link(self) -> str:
-        return f"{self._COMIC_DOMAIN}/{self._comic_page_title}_small.jpg"
+        return f"{self._COMIC_DOMAIN}/{self._comic_page_title()}_small.jpg"
 
-    @property
     def _comic_filename(self) -> str:
-        file_link = self._comic_file_link
+        file_link = self._comic_file_link()
         return file_link.rsplit("/", 1)[-1]
 
-    @property
     def _comic_page_title(self) -> str:
         if self.page is None:
             raise ValueError("page is None")
         return f"SA_{self.page:0>4}"
 
-    @property
     def _comic_page_description(self) -> str|None:
         return None
 
@@ -265,11 +259,11 @@ class PageDownloader(BasePageDownloader, Downloader):
         if self.page is None:
             raise ValueError("page is None")
         # Путь к скачанному файлу
-        comic_filepath = os.path.join(self.folder, self._comic_filename)
+        comic_filepath = os.path.join(self.folder, self._comic_filename())
         # Перескачивать уже существующий файл не нужно
         if not self._check_corrects_file(comic_filepath):
             urllib.request.urlretrieve(
-                self._comic_file_link,
+                self._comic_file_link(),
                 comic_filepath
             )
         # В случае успеха вернём номер страницы, иначе None
@@ -288,10 +282,10 @@ class PageDownloader(BasePageDownloader, Downloader):
             return self.download_comic_page()
 
         # Путь к скачанному файлу
-        comic_filepath = os.path.join(self.folder, self._comic_filename)
+        comic_filepath = os.path.join(self.folder, self._comic_filename())
         # Перескачивать уже существующий файл не нужно
         if not self._check_corrects_file(comic_filepath):
-            async with session.get(self._comic_file_link) as resp:
+            async with session.get(self._comic_file_link()) as resp:
                 async with aiofile.async_open(comic_filepath, 'wb') as file:
                     await file.write(await resp.read())
         # В случае успеха вернём номер страницы, иначе None

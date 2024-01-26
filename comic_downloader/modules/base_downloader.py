@@ -111,7 +111,6 @@ class BaseDownloader(ABC):
         )
         return parser
 
-    @property
     @abstractmethod
     def _comic_main_page_link(self) -> str:
         """Получение ссылки на главную страницу комикса"""
@@ -223,12 +222,10 @@ class BasePageDownloader(BaseDownloader):
         super().__init__(**kwargs)
         self.page = page
 
-    @property
     @abstractmethod
     def _comic_file_page_link(self) -> str:
         """Получение ссылки на страницу комикса"""
 
-    @property
     @abstractmethod
     def _comic_file_link(self) -> str:
         """Получение ссылки на файл страницы комикса на сервере"""
@@ -237,12 +234,10 @@ class BasePageDownloader(BaseDownloader):
     def _comic_filename(self) -> str:
         """Получение имени файла страницы комикса"""
 
-    @property
     @abstractmethod
     def _comic_page_title(self) -> str:
         """Получение заголовка страницы комикса"""
 
-    @property
     @abstractmethod
     def _comic_page_description(self) -> str|None:
         """Получение описания страницы комикса
