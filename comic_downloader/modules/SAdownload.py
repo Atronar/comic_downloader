@@ -3,7 +3,6 @@ https://www.collectedcurios.com/sequentialart.php
 """
 
 import os
-import sys
 from typing import Final
 import urllib.request
 import asyncio
@@ -214,7 +213,8 @@ class Downloader(BaseDownloader):
         async with aiohttp.ClientSession() as session:
             # Создание списка задач
             tasks = []
-            for page in range(self.first, self.last):
+            # reversed, так как задачи выполняются последний пришёл - первый ушёл, а нам надо по порядку
+            for page in reversed(range(self.first, self.last)):
                 # Загрузчик страниц
                 page_downloader = PageDownloader(page, **self._params)
                 tasks.append(page_downloader.async_download_comic_page(session=session))
