@@ -58,7 +58,7 @@ class Downloader(BaseDownloader):
             elif isinstance(page_element, Tag):
                 if page_element.name in [
                     'div', 'span', 'p',
-                    'em', 'strong',
+                    'em', 'i', 'strong', 'b',
                     'h3', 'h2', 'h1'
                 ]:
                     # Обрабатываем содержимое тега
