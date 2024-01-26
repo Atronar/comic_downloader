@@ -3,7 +3,7 @@ https://acomics.ru
 """
 
 import os
-import sys
+import time
 from typing import Final, Iterable
 import urllib.request
 import asyncio
@@ -324,7 +324,11 @@ class PageDownloader(BasePageDownloader, Downloader):
         # Перескачивать уже существующий файл не нужно
         if not self._check_corrects_file(comic_filepath):
             # Скачивание
-            urllib.request.urlretrieve(self._comic_file_link(), comic_filepath)
+            try:
+                urllib.request.urlretrieve(self._comic_file_link(), comic_filepath)
+            except TimeoutError:
+                time.sleep(5)
+                return None
 
         # Перескачивать уже существующий файл описания не нужно
         if not self._check_corrects_file(comic_filepath_description):
@@ -364,9 +368,13 @@ class PageDownloader(BasePageDownloader, Downloader):
         # Перескачивать уже существующий файл не нужно
         if not self._check_corrects_file(comic_filepath):
             # Скачивание
-            async with _request("GET", self._comic_file_link()) as resp:
-                async with aiofile.async_open(comic_filepath, 'wb') as file:
-                    await file.write(await resp.read())
+            try:
+                async with _request("GET", self._comic_file_link()) as resp:
+                    async with aiofile.async_open(comic_filepath, 'wb') as file:
+                        await file.write(await resp.read())
+            except TimeoutError:
+                await asyncio.sleep(5)
+                return None
 
         # Перескачивать уже существующий файл описания не нужно
         if not self._check_corrects_file(comic_filepath_description):
