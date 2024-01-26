@@ -233,7 +233,6 @@ class BasePageDownloader(BaseDownloader):
     def _comic_file_link(self) -> str:
         """Получение ссылки на файл страницы комикса на сервере"""
 
-    @property
     @abstractmethod
     def _comic_filename(self) -> str:
         """Получение имени файла страницы комикса"""

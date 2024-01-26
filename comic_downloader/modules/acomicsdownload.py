@@ -149,7 +149,6 @@ class Downloader(BaseDownloader):
         if self.first >= self.last:
             return self.last
 
-
         # Последовательно скачиваем страницы,
         # запоминаем, на какой странице необходимо начинать следующее скачивание
         last_success = self.first
@@ -317,9 +316,10 @@ class PageDownloader(BasePageDownloader, Downloader):
         if self.page is None:
             raise ValueError("page is None")
         # Путь к скачанному файлу
+        ext = os.path.splitext(self._comic_file_link())[-1] or ".jpg"
         comic_filepath = os.path.join(
             self.folder,
-            self._comic_filename()
+            self._comic_filename(ext=ext)
         )
         comic_filepath_description = os.path.join(
             self.folder,
@@ -356,9 +356,10 @@ class PageDownloader(BasePageDownloader, Downloader):
             _request = aiohttp.request
 
         # Путь к скачанному файлу
+        ext = os.path.splitext(self._comic_file_link())[-1] or ".jpg"
         comic_filepath = os.path.join(
             self.folder,
-            self._comic_filename()
+            self._comic_filename(ext=ext)
             )
         comic_filepath_description = os.path.join(
             self.folder,
