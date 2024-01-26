@@ -14,12 +14,12 @@ class RSSRow(UserDict):
         'url',
         'dir',
         'last_num',
-        'last_chk',
-        'last_upd',
+        'ended',
+        'exec_module_path',
         'desc',
         'imgtitle',
-        'exec_module_path',
-        'ended',
+        'last_chk',
+        'last_upd',
     )
 
     """Строка данных из БД"""
@@ -209,12 +209,44 @@ class RSSDB:
     def __init__(self, db_name: str):
         self.db_name = db_name
 
+    def create_db(self):
+        """Создание таблицы БД
+        """
+        if not os.path.exists(self.db_name):
+            with open(self.db_name, "wb"):
+                pass
+        with dbclosing(sqlite3.connect(self.db_name)) as connection:
+            with connection as cursor:
+                cursor.execute(
+                    """CREATE TABLE rss_list (
+                    id               INTEGER  PRIMARY KEY AUTOINCREMENT
+                                              UNIQUE
+                                              NOT NULL,
+                    name             TEXT,
+                    url              TEXT     NOT NULL,
+                    dir              TEXT     NOT NULL,
+                    last_num         INTEGER  NOT NULL
+                                              DEFAULT (1),
+                    ended            BOOLEAN  NOT NULL
+                                              DEFAULT (0),
+                    exec_module_path TEXT     NOT NULL,
+                    desc             BOOLEAN  DEFAULT (0)
+                                              NOT NULL,
+                    imgtitle         BOOLEAN  DEFAULT (0)
+                                              NOT NULL,
+                    last_chk         DATETIME,
+                    last_upd         DATETIME
+                    );
+                    """
+                )
+        print(f"БД {self.db_name} успешно создана")
+
     def service_db(self):
         """Обслуживание БД"""
         with dbclosing(sqlite3.connect(self.db_name)) as connection:
             with connection as cursor:
                 cursor.execute('vacuum')
-        print("БД rss.db успешно оптимизирована")
+        print(f"БД {self.db_name} успешно оптимизирована")
 
     def get_db(self) -> RSSData:
         """Получить данные из БД"""
