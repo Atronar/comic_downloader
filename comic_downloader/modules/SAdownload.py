@@ -189,14 +189,12 @@ class Downloader(BaseDownloader):
         if self.first >= self.last:
             return self.last
 
-        # Загрузчик страниц
-        page_downloader = PageDownloader(**self._params)
-
         # Последовательно скачиваем страницы,
         # запоминаем, на какой странице необходимо начинать следующее скачивание
         last_success = self.first
         for num in range(self.first, self.last):
-            page_downloader.page = num
+            # Загрузчик страниц
+            page_downloader = PageDownloader(num, **self._params)
             if (result := page_downloader.download_comic_page()) and last_success == result:
                 last_success = result + 1
         return last_success
