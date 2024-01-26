@@ -63,34 +63,22 @@ class RSSRow(UserDict):
     @property
     def last_chk(self) -> datetime:
         """Время последней проверки"""
-        if self.data['last_chk'] is None:
-            return datetime.fromordinal(1)
-        else:
-            return datetime.fromisoformat(self.data['last_chk'])
+        return self._norm_datetime(self.data['last_chk'])
 
     @property
     def last_upd(self) -> datetime:
         """Время последнего успешного обновления"""
-        if self.data['last_upd'] is None:
-            return datetime.fromordinal(1)
-        else:
-            return datetime.fromisoformat(self.data['last_upd'])
+        return self._norm_datetime(self.data['last_upd'])
 
     @property
     def desc(self) -> bool:
         """Скачивать ли описания"""
-        if isinstance(self.data['desc'], int):
-            return bool(self.data['desc'])
-        else:
-            return str(self.data['desc']).lower()=="true"
+        return self._norm_boolean(self.data['desc'])
 
     @property
     def imgtitle(self) -> bool:
         """Скачивать ли всплывающий текст на изображениях"""
-        if isinstance(self.data['imgtitle'], int):
-            return bool(self.data['imgtitle'])
-        else:
-            return str(self.data['imgtitle']).lower()=="true"
+        return self._norm_boolean(self.data['imgtitle'])
 
     @property
     def exec_module_path(self) -> str:
@@ -100,10 +88,7 @@ class RSSRow(UserDict):
     @property
     def ended(self) -> bool:
         """Закончен ли комикс"""
-        if isinstance(self.data['ended'], int):
-            return bool(self.data['ended'])
-        else:
-            return str(self.data['ended']).lower()=="true"
+        return self._norm_boolean(self.data['ended'])
 
     @property
     def raw(self) -> tuple:
@@ -111,7 +96,22 @@ class RSSRow(UserDict):
         return tuple(self.values())
 
     @staticmethod
-    def make_safe_path(path: str, create_path: bool=True) -> str:
+    def _norm_datetime(value: str|None) -> datetime:
+        if value:
+            return datetime.fromisoformat(value)
+        else:
+            return datetime.fromordinal(1)
+
+    @staticmethod
+    def _norm_boolean(value: str|int|None) -> bool:
+        """Скачивать ли описания"""
+        if isinstance(value, int):
+            return bool(value)
+        else:
+            return str(value).lower()=="true"
+
+    @classmethod
+    def make_safe_path(cls, path: str, create_path: bool=True) -> str:
         """Преобразование пути в абсолютный и безопасный
         """
         safe_path = os.path.abspath(path)
@@ -120,7 +120,7 @@ class RSSRow(UserDict):
             os.sep,
             f"{drive}{os.sep}",
             *map(
-                __class__.make_safe_filename,
+                cls.make_safe_filename,
                 dir_.split(os.sep)
             )
         )
