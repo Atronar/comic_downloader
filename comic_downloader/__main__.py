@@ -6,13 +6,15 @@ from win10toast import ToastNotifier
 
 import rss
 
-def get_result(out: bytes, err: bytes) -> int:
+def get_result(out: bytes, err: bytes) -> int|float:
     if err:
         write_log(err)
         print(err)
         return -1
     try:
-        return int(out)
+        if out.isdigit():
+            return int(out)
+        return float(out)
     except ValueError:
         write_log(out)
         print(err)
@@ -59,7 +61,7 @@ def main():
         print(f"Скачивание {rss_item.name}")
         procs[rss_item.id].wait()
         new_last_num = get_result(*(procs[rss_item.id].communicate()))
-        if new_last_num > rss_item.last_num:
+        if new_last_num - rss_item.last_num > 0.001:
             db.set_last_num(rss_item.id, new_last_num)
             toaster.show_toast(
                 "RSS",

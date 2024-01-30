@@ -15,6 +15,11 @@ from base_downloader import BaseDownloader, BasePageDownloader
 class Downloader(BaseDownloader):
     _COMIC_DOMAIN: Final[str] = "https://www.collectedcurios.com"
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.first: int = int(self.first)
+        self.last: int = int(self.last)
+
     def _comic_main_page_link(self) -> str:
         return f"{self._COMIC_DOMAIN}/sequentialart.php"
 

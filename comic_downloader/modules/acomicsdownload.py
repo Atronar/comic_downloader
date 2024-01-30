@@ -18,6 +18,8 @@ class Downloader(BaseDownloader):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.first: int = int(self.first)
+        self.last: int = int(self.last)
         self.comic_name = self.comic_name.rsplit("/",1)[-1]
         if not self.comic_name.startswith("~"):
             self.comic_name = f"~{self.comic_name}"

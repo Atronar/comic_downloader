@@ -10,8 +10,8 @@ class BaseDownloader(ABC):
     def __init__(
         self, *,
         comic_name: str|None = None,
-        first: int|None = None,
-        last: int|None = None,
+        first: int|float|str|None = None,
+        last: int|float|str|None = None,
         is_write_description: bool|None = None,
         is_write_img_description: bool|None = None,
         folder: str|os.PathLike|None = None,
@@ -20,8 +20,20 @@ class BaseDownloader(ABC):
         args, _ = self.arg_parser.parse_known_args()
 
         self.comic_name: str = comic_name or args.comic
-        self.first: int = first or args.first
-        self.last: int|None = last or args.last
+
+        self.first: str
+        first = first or args.first
+        if first is None:
+            raise ValueError("first is None")
+        else:
+            self.first = str(first)
+
+        self.last: str|None
+        last = last or args.last
+        if last is None:
+            self.last = last
+        else:
+            self.last = str(last)
 
         self.is_write_description: bool
         if is_write_description is None:
@@ -75,7 +87,7 @@ class BaseDownloader(ABC):
             'first',
             nargs = '?',
             help = 'Номер первой страницы, число',
-            type = int,
+            type = str,
             default = 1
         )
         parser.add_argument(
@@ -85,7 +97,7 @@ class BaseDownloader(ABC):
                 'Номер последней страницы, число. '
                 'Если больше возможного, то качается до последнего существующего.'
             ),
-            type = int,
+            type = str,
             default = None
         )
         parser.add_argument(

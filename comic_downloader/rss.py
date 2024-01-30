@@ -53,7 +53,7 @@ class RSSRow(UserDict):
         return self.make_safe_path(self.data['dir'])
 
     @property
-    def last_num(self) -> int:
+    def last_num(self) -> int|float:
         """Номер выпуска, с которого необходимо производить обновление"""
         if self.data['last_num'] > 0:
             return self.data['last_num']
@@ -222,7 +222,7 @@ class RSSDB:
                     name             TEXT,
                     url              TEXT     NOT NULL,
                     dir              TEXT     NOT NULL,
-                    last_num         INTEGER  NOT NULL
+                    last_num         NUMERIC  NOT NULL
                                               DEFAULT (1),
                     ended            BOOLEAN  NOT NULL
                                               DEFAULT (0),
@@ -266,7 +266,7 @@ class RSSDB:
             raise exc
         return RSSData(res)
 
-    def set_last_num(self, rss_id: int, last_num: int):
+    def set_last_num(self, rss_id: int, last_num: int|float):
         """Обновить номер первого непрочитанного"""
         with dbclosing(sqlite3.connect(self.db_name)) as connection:
             with connection as cursor:
