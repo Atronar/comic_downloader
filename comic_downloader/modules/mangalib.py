@@ -583,8 +583,9 @@ class PageDownloader(BasePageDownloader, Downloader):
                             headers = self._HEADERS,
                             timeout = 180
                         ) as resp:
-                            with open(comic_filepath, 'wb') as file:
-                                file.write(resp.content)
+                            if resp.ok:
+                                with open(comic_filepath, 'wb') as file:
+                                    file.write(resp.content)
                         break
                     except requests.exceptions.RequestException as exc:
                         if img_domain+1==len(self._IMG_DOMAIN):
@@ -642,8 +643,9 @@ class PageDownloader(BasePageDownloader, Downloader):
                             self._comic_file_link(img_domain),
                             headers=self._HEADERS
                         ) as resp:
-                            async with aiofile.async_open(comic_filepath, 'wb') as file:
-                                await file.write(await resp.read())
+                            if resp.ok:
+                                async with aiofile.async_open(comic_filepath, 'wb') as file:
+                                    await file.write(await resp.read())
                         break
                     except Exception as exc:
                         raise exc
