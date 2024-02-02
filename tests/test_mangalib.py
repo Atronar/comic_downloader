@@ -75,7 +75,7 @@ class Test_test_mangalib(unittest.TestCase):
         os.makedirs(folder, exist_ok=True)
         
         ext = os.path.splitext(page_downloader._comic_file_link())[-1] or ".jpg"
-        filepath = os.path.join(folder, page_downloader.chapter_title, page_downloader._comic_filename(ext=ext))
+        filepath = os.path.join(folder, f"{page_downloader.chapter} - {page_downloader.chapter_title}", page_downloader._comic_filename(ext=ext))
         try:
             os.remove(filepath)
         except FileNotFoundError:
@@ -103,7 +103,7 @@ class Test_test_mangalib(unittest.TestCase):
         os.makedirs(folder, exist_ok=True)
         
         ext = os.path.splitext(page_downloader._comic_file_link())[-1] or ".jpg"
-        filepath = os.path.join(folder, page_downloader.chapter_title, page_downloader._comic_filename(ext=ext))
+        filepath = os.path.join(folder, f"{page_downloader.chapter} - {page_downloader.chapter_title}", page_downloader._comic_filename(ext=ext))
         try:
             os.remove(filepath)
         except FileNotFoundError:

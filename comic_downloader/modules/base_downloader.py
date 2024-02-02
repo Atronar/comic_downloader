@@ -25,8 +25,7 @@ class BaseDownloader(ABC):
         first = first or args.first
         if first is None:
             raise ValueError("first is None")
-        else:
-            self.first = str(first)
+        self.first = str(first)
 
         self.last: str|None
         last = last or args.last

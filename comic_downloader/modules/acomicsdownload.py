@@ -179,7 +179,10 @@ class Downloader(BaseDownloader):
             for page in reversed(range(self.first, self.last)):
                 # Загрузчик страниц
                 page_downloader = PageDownloader(page, **self._params)
-                tasks.append(page_downloader.async_download_comic_page(session=session))
+                tasks.append(
+                    asyncio.create_task(
+                        page_downloader.async_download_comic_page(session=session))
+                )
             # Запуск задач
             results = await asyncio.gather(*tasks)
             # Чистка результатов
