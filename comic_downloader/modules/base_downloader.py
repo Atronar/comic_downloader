@@ -128,7 +128,7 @@ class BaseDownloader(ABC):
 
     def _check_corrects_file(self, filepath: str|os.PathLike) -> bool:
         """Проверка файла на существование и корректность"""
-        return os.path.exists(filepath) and os.path.getsize(filepath) > 8
+        return os.path.exists(filepath) and os.path.getsize(filepath) > 1024
 
     @staticmethod
     def _clear_text_multiplespaces(text: str) -> str:
