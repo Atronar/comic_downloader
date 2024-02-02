@@ -492,7 +492,9 @@ class PageDownloader(BasePageDownloader, Downloader):
                 chapter_data = ChapterDownloader(self.volume, self.chapter, **chapter_kwargs).data
             chapter_title = chapter_data.get("name", None)
             if chapter_title is None:
-                raise ValueError("chapter_title is None")
+                if "name" not in chapter_data.keys():
+                    raise ValueError("chapter_title is None")
+                chapter_title = ""
             self.chapter_title = chapter_title
 
         self.data: dict[str, str|int]
