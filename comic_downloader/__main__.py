@@ -12,7 +12,7 @@ def get_result(out: bytes, err: bytes) -> int|float:
         print(err)
         return -1
     try:
-        if out.isdigit():
+        if out.strip().isdigit():
             return int(out)
         return float(out)
     except ValueError:
