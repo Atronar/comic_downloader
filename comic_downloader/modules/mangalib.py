@@ -162,8 +162,12 @@ class Downloader(BaseDownloader):
     _COMIC_DOMAIN: Final[str] = "https://mangalib.me"
     _API_DOMAIN: Final[str] = "https://api.lib.social"
     _IMG_DOMAIN: Final[tuple[str, ...]] = (
+        "https://img2.mixlib.me",
+        "https://img4.imgslib.link/",
         "https://img33.imgslib.link",
-        "https://img2.mixlib.me"
+        "https://img2.hentaicdn.org",
+        "https://img4.hentaicdn.org",
+        "https://img3.imglib.info",
     )
     _HEADERS: Final[dict[str, str]] = {
         'user-agent': ''
