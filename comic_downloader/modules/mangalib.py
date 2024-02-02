@@ -6,7 +6,6 @@ from collections import UserList
 import os
 import time
 from typing import Any, Final, Iterable, Iterator, overload
-import urllib.request
 import asyncio
 import aiofile
 import aiohttp
@@ -162,7 +161,13 @@ class ChapterNumber(UserList):
 class Downloader(BaseDownloader):
     _COMIC_DOMAIN: Final[str] = "https://mangalib.me"
     _API_DOMAIN: Final[str] = "https://api.lib.social"
-    _IMG_DOMAIN: Final[str] = "https://img33.imgslib.link"
+    _IMG_DOMAIN: Final[tuple[str, ...]] = (
+        "https://img33.imgslib.link",
+        "https://img2.mixlib.me"
+    )
+    _HEADERS: Final[dict[str, str]] = {
+        'user-agent': ''
+    }
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -195,7 +200,7 @@ class Downloader(BaseDownloader):
             loop = asyncio.get_event_loop()
             return loop.run_until_complete(self._async_get_chapters_data())
 
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=60)
         data = resp.json().get("data", [])
         return data
 
@@ -415,7 +420,7 @@ class ChapterDownloader(Downloader):
             loop = asyncio.get_event_loop()
             return loop.run_until_complete(self._async_get_chapter_data(volume, chapter))
 
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=60)
         data = resp.json().get("data", {})
         if toast := data.get("toast", None):
             raise ValueError(toast.get("message", ""), data)
@@ -518,8 +523,10 @@ class PageDownloader(BasePageDownloader, Downloader):
             raise ValueError("volume is None")
         return f"{self._comic_main_page_link()}/v{self.volume}/c{self.chapter}?page={self.page}"
 
-    def _comic_file_link(self) -> str:
-        return f"{self._IMG_DOMAIN}{self.data.get('url')}"
+    def _comic_file_link(self, img_domain: int=0) -> str:
+        if img_domain in range(len(self._IMG_DOMAIN)):
+            return f"{self._IMG_DOMAIN[img_domain]}{self.data.get('url')}"
+        return f"{self._IMG_DOMAIN[0]}{self.data.get('url')}"
 
     def _comic_filename(self, ext: str=".jpg") -> str:
         # Дописываем точку к расширению, если отсутствует
@@ -563,7 +570,19 @@ class PageDownloader(BasePageDownloader, Downloader):
                 os.makedirs(chapter_dir)
             # Скачивание
             try:
-                urllib.request.urlretrieve(self._comic_file_link(), comic_filepath)
+                for img_domain in range(len(self._IMG_DOMAIN)):
+                    try:
+                        with requests.get(
+                            self._comic_file_link(img_domain=img_domain),
+                            headers = self._HEADERS,
+                            timeout = 180
+                        ) as resp:
+                            with open(comic_filepath, 'wb') as file:
+                                file.write(resp.content)
+                        break
+                    except requests.exceptions.RequestException as exc:
+                        if img_domain+1==len(self._IMG_DOMAIN):
+                            raise exc
             except TimeoutError:
                 time.sleep(5)
                 return None
@@ -610,11 +629,20 @@ class PageDownloader(BasePageDownloader, Downloader):
                 os.makedirs(chapter_dir)
             # Скачивание
             try:
-                async with _request("GET", self._comic_file_link()) as resp:
-                    async with aiofile.async_open(comic_filepath, 'wb') as file:
-                        await file.write(await resp.read())
+                for img_domain in range(len(self._IMG_DOMAIN)):
+                    try:
+                        async with _request(
+                            "GET",
+                            self._comic_file_link(img_domain),
+                            headers=self._HEADERS
+                        ) as resp:
+                            async with aiofile.async_open(comic_filepath, 'wb') as file:
+                                await file.write(await resp.read())
+                        break
+                    except Exception as exc:
+                        raise exc
             except TimeoutError:
-                await asyncio.sleep(5)
+                await asyncio.sleep(1)
                 return None
 
         # В случае успеха вернём номер страницы, иначе None
