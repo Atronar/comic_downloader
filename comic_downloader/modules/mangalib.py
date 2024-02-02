@@ -662,5 +662,5 @@ if __name__ == '__main__':
     # Скачивание
     r_chapter = downloader.downloadcomic()
     # Возвращаемое значение — номер новой нескачанной страницы
-    r = '.'.join(r_chapter.data[:2])
+    r = '.'.join(map(str, r_chapter.data[:2]))
     print(r)
