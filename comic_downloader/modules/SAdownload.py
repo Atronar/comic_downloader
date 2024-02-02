@@ -17,8 +17,10 @@ class Downloader(BaseDownloader):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.first: int = int(self.first)
-        self.last: int = int(self.last)
+        if self.first is not None:
+            self.first: int = int(self.first)
+        if self.last is not None:
+            self.last: int = int(self.last)
 
     def _comic_main_page_link(self) -> str:
         return f"{self._COMIC_DOMAIN}/sequentialart.php"
