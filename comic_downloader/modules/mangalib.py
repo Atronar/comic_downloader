@@ -434,7 +434,7 @@ class ChapterDownloader(Downloader):
                 raise ConnectionError(resp.status_code)
         if resp is None:
             raise ValueError("Response is None")
-        data = resp.json().get("data", {}) # ignore:
+        data = resp.json().get("data", {})
         if toast := data.get("toast", None):
             raise ValueError(toast.get("message", ""), data)
         return data
