@@ -422,8 +422,19 @@ class ChapterDownloader(Downloader):
             loop = asyncio.get_event_loop()
             return loop.run_until_complete(self._async_get_chapter_data(volume, chapter))
 
-        resp = requests.get(url, timeout=60)
-        data = resp.json().get("data", {})
+        resp = None
+        retry = True
+        while retry:
+            retry = False
+            resp = requests.get(url, timeout=60)
+            if resp.status_code == 429:
+                retry = True
+                time.sleep(5)
+            elif not resp.ok:
+                raise ConnectionError(resp.status_code)
+        if resp is None:
+            raise ValueError("Response is None")
+        data = resp.json().get("data", {}) # ignore:
         if toast := data.get("toast", None):
             raise ValueError(toast.get("message", ""), data)
         return data
@@ -433,8 +444,18 @@ class ChapterDownloader(Downloader):
             f"{self._API_DOMAIN}"
             f"/api/manga/{self.comic_name}/chapter?number={chapter}&volume={volume}"
         )
-        async with aiohttp.request('GET', url) as resp:
-            data = (await resp.json()).get("data", {})
+        data = None
+        retry = True
+        while retry:
+            retry = False
+            async with aiohttp.request('GET', url) as resp:
+                if resp.status == 429:
+                    retry = True
+                    await asyncio.sleep(5)
+                else:
+                    data = (await resp.json()).get("data", {})
+        if data is None:
+            raise ValueError("Data is None")
         if toast := data.get("toast", None):
             raise ValueError(toast.get("message", ""), data)
         return data
