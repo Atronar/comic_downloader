@@ -325,19 +325,17 @@ class Downloader(BaseDownloader):
             # Скачивание
             # Создание списка задач
             tasks: dict[str, dict] = {}
-            # reversed, так как задачи выполняются последний пришёл - первый ушёл,
-            # а нам надо по порядку
-            for chapter in reversed(self.chapters_data):
+            for chapter in self.chapters_data:
                 # Берём номер части
                 num_chapter = chapter.get("number", None)
                 if num_chapter is None:
                     raise ValueError(f'{num_chapter=}')
                 # Если часть до первой нужной, то пропускаем
                 if self.first > ChapterNumber(num_chapter):
-                    break
+                    continue
                 # Начиная с последней, пропускаем
                 if self.last <= ChapterNumber(num_chapter):
-                    continue
+                    break
                 # Берём номер тома
                 num_volume = chapter.get("volume", None)
                 if num_volume is None:
