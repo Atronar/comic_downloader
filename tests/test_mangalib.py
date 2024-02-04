@@ -1,6 +1,5 @@
 ﻿from pathlib import Path
 import shutil
-from typing import Iterable
 import unittest
 import asyncio
 from comic_downloader.modules import mangalib

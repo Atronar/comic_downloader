@@ -1,7 +1,7 @@
 ﻿import shutil
 import unittest
 import asyncio
-from comic_downloader import SAdownload
+from comic_downloader.modules import SAdownload
 import os
 
 class Test_test_SA(unittest.TestCase):
