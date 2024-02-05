@@ -163,7 +163,7 @@ class Downloader(BaseDownloader):
     _API_DOMAIN: Final[str] = "https://api.lib.social"
     _IMG_DOMAIN: Final[tuple[str, ...]] = (
         "https://img2.mixlib.me",
-        "https://img4.imgslib.link/",
+        "https://img4.imgslib.link",
         "https://img33.imgslib.link",
         "https://img2.hentaicdn.org",
         "https://img4.hentaicdn.org",
