@@ -1,4 +1,5 @@
 ﻿import subprocess as sp
+from typing import Iterator
 import urllib.error
 import sys
 
@@ -24,53 +25,59 @@ def write_log(log: bytes, file: str='.log'):
     with open(file, 'ab') as f:
         f.write(log)
 
+def sublists(lst: rss.RSSData, sublist_size: int) -> Iterator[rss.RSSData]:
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), sublist_size):
+        yield lst[i:i + sublist_size]
+
 def main():
     toaster = ToastNotifier()
     db = rss.RSSDB(rss.DB_NAME)
     db.service_db()
 
     rss_list = db.get_db()
-    procs: dict[int, sp.Popen] = {}
 
-    # Добавление задач
-    for rss_item in rss_list:
-        if rss_item.ended:
-            # Завершённые комиксы пропускаем
-            continue
-        try:
-            procs[rss_item.id] = (
-                sp.Popen(
-                    f'python "{rss_item.exec_module_path}" "{rss_item.url}" {rss_item.last_num} '
-                    f'-folder "{rss_item.dir}"'
-                    f'{" -desc" if rss_item.desc else ""}'
-                    f'{" -imgtitle" if rss_item.imgtitle else ""}'
-                    f'{" -no-async" if "-no-async" in sys.argv else ""}',
-                    stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE
+    for rss_sublist in sublists(rss_list, 5):
+        procs: dict[int, sp.Popen] = {}
+        # Добавление задач
+        for rss_item in rss_sublist:
+            if rss_item.ended:
+                # Завершённые комиксы пропускаем
+                continue
+            try:
+                procs[rss_item.id] = (
+                    sp.Popen(
+                        f'python "{rss_item.exec_module_path}" "{rss_item.url}" {rss_item.last_num} '
+                        f'-folder "{rss_item.dir}"'
+                        f'{" -desc" if rss_item.desc else ""}'
+                        f'{" -imgtitle" if rss_item.imgtitle else ""}'
+                        f'{" -no-async" if "-no-async" in sys.argv else ""}',
+                        stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE
+                    )
                 )
-            )
-            print(f"{rss_item.name} добавлен")
-        except urllib.error.URLError as err:
-            print(err)
-            raise err
+                print(f"{rss_item.name} добавлен")
+            except urllib.error.URLError as err:
+                print(err)
+                raise err
 
-    # Ожидание ответов
-    for rss_item in rss_list:
-        if rss_item.ended:
-            # Завершённые комиксы пропускаем
-            continue
-        print(f"Скачивание {rss_item.name}")
-        procs[rss_item.id].wait()
-        new_last_num = get_result(*(procs[rss_item.id].communicate()))
-        if new_last_num - rss_item.last_num > 0.001:
-            db.set_last_num(rss_item.id, new_last_num)
-            toaster.show_toast(
-                "RSS",
-                f"Обновление: {rss_item.name}\n"
-                f"Добавлена {new_last_num-1} страница"
-            )
-        else:
-            db.set_last_chk(rss_item.id)
-        print(f"Скачивание {rss_item.name} завершено")
+        # Ожидание ответов
+        for rss_item in rss_sublist:
+            if rss_item.ended:
+                # Завершённые комиксы пропускаем
+                continue
+            print(f"Скачивание {rss_item.name}")
+            procs[rss_item.id].wait()
+            new_last_num = get_result(*(procs[rss_item.id].communicate()))
+            if new_last_num - rss_item.last_num > 0.001:
+                db.set_last_num(rss_item.id, new_last_num)
+                toaster.show_toast(
+                    "RSS",
+                    f"Обновление: {rss_item.name}\n"
+                    f"Добавлена {new_last_num-1} страница"
+                )
+            else:
+                db.set_last_chk(rss_item.id)
+            print(f"Скачивание {rss_item.name} завершено")
 
 if __name__ == '__main__':
     main()

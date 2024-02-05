@@ -201,6 +201,13 @@ class RSSData:
             return RSSData(self.data[index])
         return self.data[index]
 
+    def __iter__(self):
+        for row in self.data:
+            yield row
+
+    def __len__(self):
+        return len(self.data)
+
 class RSSDB:
     """Класс работы с БД"""
     def __init__(self, db_name: str):
