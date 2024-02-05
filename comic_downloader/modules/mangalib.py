@@ -603,10 +603,17 @@ class PageDownloader(BasePageDownloader, Downloader):
                             timeout = 180
                         ) as resp:
                             if resp.ok:
+                                if int(resp.headers.get("Content-Length", 0)) < 512:
+                                    raise requests.exceptions.HTTPError(response=resp)
                                 with open(comic_filepath, 'wb') as file:
                                     file.write(resp.content)
+                            else:
+                                raise requests.exceptions.HTTPError(response=resp)
                         break
-                    except requests.exceptions.RequestException as exc:
+                    except (
+                        requests.exceptions.ConnectionError,
+                        requests.exceptions.HTTPError
+                    ) as exc:
                         if img_domain+1==len(self._IMG_DOMAIN):
                             raise exc
             except TimeoutError:
