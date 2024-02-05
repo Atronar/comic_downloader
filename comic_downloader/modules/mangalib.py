@@ -205,7 +205,19 @@ class Downloader(BaseDownloader):
             loop = asyncio.get_event_loop()
             return loop.run_until_complete(self._async_get_chapters_data())
 
-        resp = requests.get(url, timeout=60)
+        resp = None
+        retry = True
+        while retry:
+            retry = False
+            resp = requests.get(url, timeout=60)
+            if resp.status_code == 429:
+                retry = True
+                time.sleep(5)
+            elif not resp.ok:
+                raise ConnectionError(resp.status_code)
+        if resp is None:
+            raise ValueError("Response is None")
+
         data = resp.json().get("data", [])
         return data
 
@@ -220,8 +232,20 @@ class Downloader(BaseDownloader):
             _request = aiohttp.request
 
         url = f"{self._API_DOMAIN}/api/manga/{self.comic_name}/chapters"
-        async with _request('GET', url) as resp:
-            data = (await resp.json()).get("data", [])
+
+        data = None
+        retry = True
+        while retry:
+            retry = False
+            async with _request('GET', url) as resp:
+                if resp.status == 429:
+                    retry = True
+                    await asyncio.sleep(5)
+                else:
+                    data = (await resp.json()).get("data", [])
+        if data is None:
+            raise ValueError("Data is None")
+
         return data
 
     def find_last(self) -> ChapterNumber:
