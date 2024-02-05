@@ -159,7 +159,6 @@ class ChapterNumber(UserList):
         return super().__iter__()
 
 class Downloader(BaseDownloader):
-    _COMIC_DOMAIN: Final[str] = "https://mangalib.me"
     _API_DOMAIN: Final[str] = "https://api.lib.social"
     _IMG_DOMAIN: Final[tuple[str, ...]] = (
         "https://img2.mixlib.me",
@@ -169,17 +168,19 @@ class Downloader(BaseDownloader):
         "https://img4.hentaicdn.org",
         "https://img3.imglib.info",
     )
-    _HEADERS: Final[dict[str, str]] = {
-        'user-agent': ''
-    }
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Страницы могут быть вида 58.1
         self.first: ChapterNumber = ChapterNumber(self.first)
         self.last: ChapterNumber = ChapterNumber(self.last)
+        self._COMIC_DOMAIN: str = "https://mangalib.me"
         self.comic_name = self.comic_name.rsplit("/",1)[-1]
         self.chapters_data: list[dict[str, Any]]|None = None
+        self._HEADERS: dict[str, str] = {
+            'user-agent': '',
+            "referer": f"https://{self._COMIC_DOMAIN}/"
+        }
 
     @overload
     def _to_number(self, number: int|float) -> ChapterNumber: ...
