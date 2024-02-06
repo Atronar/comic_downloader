@@ -639,8 +639,7 @@ class PageDownloader(BasePageDownloader, Downloader):
                         requests.exceptions.ConnectionError,
                         requests.exceptions.HTTPError
                     ) as exc:
-                        if img_domain+1==len(self._IMG_DOMAIN):
-                            raise exc
+                        pass
             except TimeoutError:
                 time.sleep(5)
                 return None
@@ -695,11 +694,12 @@ class PageDownloader(BasePageDownloader, Downloader):
                             headers=self._HEADERS
                         ) as resp:
                             if resp.ok:
-                                async with aiofile.async_open(comic_filepath, 'wb') as file:
-                                    await file.write(await resp.read())
+                                if int(resp.headers.get("Content-Length", 0)) >= 512:
+                                    async with aiofile.async_open(comic_filepath, 'wb') as file:
+                                        await file.write(await resp.read())
                         break
-                    except Exception as exc:
-                        raise exc
+                    except aiohttp.ClientConnectionError as exc:
+                        pass
             except TimeoutError:
                 await asyncio.sleep(1)
                 return None
