@@ -4,6 +4,7 @@
 from abc import ABC, abstractmethod
 import argparse
 import os
+from typing import Any
 import aiohttp
 
 class BaseDownloader(ABC):
@@ -15,7 +16,8 @@ class BaseDownloader(ABC):
         is_write_description: bool|None = None,
         is_write_img_description: bool|None = None,
         folder: str|os.PathLike|None = None,
-        use_async: bool|None = None
+        use_async: bool|None = None,
+        **kwargs
     ):
         args, _ = self.arg_parser.parse_known_args()
 
@@ -61,7 +63,7 @@ class BaseDownloader(ABC):
             self.use_async = use_async
 
     @property
-    def _params(self):
+    def _params(self) -> dict[str, Any]:
         return dict({
             "comic_name": self.comic_name,
             "first": self.first,
