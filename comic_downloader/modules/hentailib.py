@@ -8,7 +8,7 @@ try:
     import tomlkit as tomllib
 except ModuleNotFoundError:
     import tomllib
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 import urllib.parse
 import asyncio
 import aiohttp
@@ -19,14 +19,18 @@ import mangalib
 
 ChapterNumber = mangalib.ChapterNumber
 
-class _BS_JSONPageData(TypedDict):
+class _BS_JSONPageDataDict(TypedDict):
     p: int
     u: str
+
+class _CookieTokenDict(TypedDict):
+    mangalib_session: str
+    mangalib_remember_web: NotRequired[str]
 
 class Downloader(mangalib.Downloader):
     def __init__(
         self,
-        token: dict[str, str]|None = None,
+        token: _CookieTokenDict|None = None,
         token_path: str|None = "config.toml",
         **kwargs
     ):
@@ -39,8 +43,8 @@ class Downloader(mangalib.Downloader):
             self._COMIC_DOMAIN, self.comic_name = self.comic_name.rsplit("/",1)
         else:
             self._COMIC_DOMAIN = str(kwargs.get("_COMIC_DOMAIN"))
-        self.chapters_data: list[dict[str, Any]]|None = None
-        self._HEADERS: dict[str, str] = {
+        self.chapters_data: list[mangalib._ChapterDataDict]|None = None
+        self._HEADERS: mangalib._HeadersDict = {
             'user-agent': '',
             "referer": f"https://{self._COMIC_DOMAIN}/"
         }
@@ -68,7 +72,7 @@ class Downloader(mangalib.Downloader):
         })
         return params
 
-    def _clean_token(self, token: dict[str, str]) -> dict[str, str]:
+    def _clean_token(self, token: _CookieTokenDict) -> _CookieTokenDict:
         token['mangalib_session'] = token['mangalib_session'].rstrip(";")
         if token['mangalib_session'][-1] == "=":
             token['mangalib_session'] = urllib.parse.quote(token['mangalib_session'])
@@ -85,13 +89,15 @@ class Downloader(mangalib.Downloader):
         return token
 
     def _get_user_id(self) -> int:
-        mangalib_remember_web = self.token["mangalib_remember_web"].split('=', 1)
+        # Устанавливаем куки
+        cookies = {"mangalib_session": self.token["mangalib_session"]}
+        if "mangalib_remember_web" in self.token:
+            mangalib_remember_web = self.token["mangalib_remember_web"].split('=', 1)
+            cookies.update({mangalib_remember_web[0]: mangalib_remember_web[1]})
+        # Подготовка http/2 запроса
         with httpx.Client(
             headers = self._HEADERS,
-            cookies = {
-                "mangalib_session": self.token["mangalib_session"],
-                mangalib_remember_web[0]: mangalib_remember_web[1],
-            },
+            cookies = cookies,
             http2 = True
         ) as client:
             # Айдишник берётся из пути в заголовке редиректа
@@ -187,7 +193,7 @@ class Downloader(mangalib.Downloader):
 
             # Скачивание
             # Создание списка задач
-            tasks: dict[str, dict] = {}
+            tasks: dict[str, mangalib._AsyncDownloadTaskDict] = {}
             for chapter in self.chapters_data:
                 # Берём номер части
                 num_chapter = chapter.get("number", None)
@@ -226,11 +232,12 @@ class Downloader(mangalib.Downloader):
                 tasks[num_chapter]['results'] = asyncio.gather(*(tasks[num_chapter]['tasks']))
             # Ожидание результатов
             for num_chapter, task in tasks.items():
-                results: list[int|None] = await task['results']
-                # Чистка результатов
-                task['succesed_pages'] = sum(1 for result in results if result is not None)
-                del task['results']
-                del task['tasks']
+                if task['results'] is not None:
+                    results: list[int|None] = await task['results']
+                    # Чистка результатов
+                    task['succesed_pages'] = sum(1 for result in results if result is not None)
+                    del task['results']
+                    del task['tasks']
 
         # Возврат следующей к скачиванию страницы
         for num_chapter, task in tasks.items():
@@ -243,7 +250,7 @@ class Downloader(mangalib.Downloader):
 class ChapterDownloader(Downloader, mangalib.ChapterDownloader):
     def __init__(
         self,
-        chapter_data: dict[str, Any],
+        chapter_data: mangalib._ChapterDataDict,
         **kwargs
     ):
         Downloader.__init__(self, **kwargs)
@@ -252,15 +259,15 @@ class ChapterDownloader(Downloader, mangalib.ChapterDownloader):
     @classmethod
     async def async_create(
         cls,
-        chapter_data: dict[str, Any],
+        chapter_data: mangalib._ChapterDataDict,
         **kwargs
     ):
         return cls(chapter_data=chapter_data, **kwargs)
 
     def _get_chapter_data(
         self,
-        chapter_data: dict[str, Any]
-    ) -> dict[str, Any]:
+        chapter_data: mangalib._ChapterDataDict
+    ) -> mangalib._ChapterDataDict:
         # Инициализируем из доступных данных главу, часть и ид части
         volume: str = chapter_data.get("volume", None)
         if volume is None:
@@ -272,15 +279,16 @@ class ChapterDownloader(Downloader, mangalib.ChapterDownloader):
         if chapter_id is None:
             raise ValueError(f'{chapter_id=}')
 
+        # Устанавливаем куки
+        cookies = {"mangalib_session": self.token["mangalib_session"]}
+        if "mangalib_remember_web" in self.token:
+            mangalib_remember_web = self.token["mangalib_remember_web"].split('=', 1)
+            cookies.update({mangalib_remember_web[0]: mangalib_remember_web[1]})
         # Подключение к хентайлибу по http/2
-        mangalib_remember_web = self.token["mangalib_remember_web"].split('=', 1)
         with httpx.Client(
-            headers=self._HEADERS,
-            cookies={
-                "mangalib_session": self.token["mangalib_session"],
-                mangalib_remember_web[0]: mangalib_remember_web[1],
-            },
-            http2=True
+            headers = self._HEADERS,
+            cookies = cookies,
+            http2 = True
         ) as client:
             # Нужные нам данные можно получить на первой открытой странице
             url = f"{self._COMIC_DOMAIN}/{self.comic_name}/v{volume}/c{chapter}?ui={self.user_id}&page=1"
@@ -300,7 +308,7 @@ class ChapterDownloader(Downloader, mangalib.ChapterDownloader):
             json_string = content_data.get_text(strip=True).split("=", 1)[-1].strip(";")
         else:
             raise ValueError(f"Illegal json on {url}")
-        pages_data: list[_BS_JSONPageData] = json.loads(json_string)
+        pages_data: list[_BS_JSONPageDataDict] = json.loads(json_string)
         # Дописываем данные части нужными данными
         chapter_data.update({
             "pages": [
@@ -315,8 +323,8 @@ class ChapterDownloader(Downloader, mangalib.ChapterDownloader):
 
     async def _async_get_chapter_data(
         self,
-        chapter_data: dict[str, Any]
-    ) -> dict[str, Any]:
+        chapter_data: mangalib._ChapterDataDict
+    ) -> mangalib._ChapterDataDict:
         return self._get_chapter_data(chapter_data)
 
     def __iter__(self):
@@ -337,16 +345,16 @@ class PageDownloader(Downloader, mangalib.PageDownloader):
         volume: str|None = None,
         chapter: str|None = None,
         chapter_title: str|None = None,
-        data: dict[str, str|int]|None = None,
+        data: mangalib._PageDataDict|None = None,
         **kwargs
     ):
         super().__init__(page=page, **kwargs)
 
-        chapter_data = None
+        chapter_data: mangalib._ChapterDataDict|None = None
 
         self.chapter = chapter
 
-        self.data: dict[str, str|int]
+        self.data: mangalib._PageDataDict
         if data:
             self.data = data
         else:
@@ -429,7 +437,7 @@ class PageDownloader(Downloader, mangalib.PageDownloader):
                 raise ValueError("page is None")
             self.page = int(slug)
 
-def get_token(path: str = "config.toml") -> dict[str, str]:
+def get_token(path: str = "config.toml") -> _CookieTokenDict:
     """Получение токена mangalib_session из файла
 
     Сам токен должен быть заранее записан в файл из соответствующей куки на сайте в виде
@@ -438,10 +446,10 @@ def get_token(path: str = "config.toml") -> dict[str, str]:
     """
     with open(path, "rb") as file:
         config = tomllib.load(file)
-    return {
+    return _CookieTokenDict({
         'mangalib_session': str(config['mangalib_session']),
         'mangalib_remember_web': str(config['mangalib_remember_web']),
-    }
+    })
 
 def update_token(token: str, path: str = "config.toml"):
     """Обновление токена в файле

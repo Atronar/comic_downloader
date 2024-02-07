@@ -5,12 +5,30 @@ https://mangalib.me/
 from collections import UserList
 import os
 import time
-from typing import Any, Final, Iterable, Iterator, overload
+from typing import Final, Iterable, Iterator, NotRequired, TypedDict, overload
 import asyncio
 import aiofile
 import aiohttp
 import requests
 from base_downloader import BaseDownloader, BasePageDownloader
+
+_HeadersDict = dict[str, str]
+
+class _PageDataDict(TypedDict):
+    slug: int
+    url: str
+
+class _ChapterDataDict(TypedDict):
+    volume: str
+    number: str
+    name: str|None
+    pages: NotRequired[list[_PageDataDict]]
+
+class _AsyncDownloadTaskDict(TypedDict):
+    pages_in_chapter: int
+    tasks: NotRequired[list[asyncio.Task[int|None]]]
+    results: NotRequired[asyncio.Future[list[int|None]]|None]
+    succesed_pages: int
 
 class ChapterNumber(UserList):
     """Класс, представляющий номер части, которая может состоять как из одного числа,
@@ -176,8 +194,8 @@ class Downloader(BaseDownloader):
         self.last: ChapterNumber = ChapterNumber(self.last)
         self._COMIC_DOMAIN: str = "https://mangalib.me"
         self.comic_name = self.comic_name.rsplit("/",1)[-1]
-        self.chapters_data: list[dict[str, Any]]|None = None
-        self._HEADERS: dict[str, str] = {
+        self.chapters_data: list[_ChapterDataDict]|None = None
+        self._HEADERS: _HeadersDict = {
             'user-agent': '',
             "referer": f"https://{self._COMIC_DOMAIN}/"
         }
@@ -199,7 +217,7 @@ class Downloader(BaseDownloader):
     def _comic_main_page_link(self) -> str:
         return f"{self._COMIC_DOMAIN}/{self.comic_name}"
 
-    def _get_chapters_data(self, use_async: bool=True) -> list[dict[str, Any]]:
+    def _get_chapters_data(self, use_async: bool=True) -> list[_ChapterDataDict]:
         url = f"{self._API_DOMAIN}/api/manga/{self.comic_name}/chapters"
         if use_async:
             loop = asyncio.get_event_loop()
@@ -224,7 +242,7 @@ class Downloader(BaseDownloader):
     async def _async_get_chapters_data(
         self,
         async_session: aiohttp.ClientSession|None = None
-    ) -> list[dict[str, Any]]:
+    ) -> list[_ChapterDataDict]:
         # Без сессии используем обычный запрос
         if async_session:
             _request = async_session.request
@@ -349,7 +367,7 @@ class Downloader(BaseDownloader):
 
             # Скачивание
             # Создание списка задач
-            tasks: dict[str, dict] = {}
+            tasks: dict[str, _AsyncDownloadTaskDict] = {}
             for chapter in self.chapters_data:
                 # Берём номер части
                 num_chapter = chapter.get("number", None)
@@ -374,12 +392,12 @@ class Downloader(BaseDownloader):
                 # Количество страниц, которые мы должны скачать
                 pages_in_chapter = len(chapter_downloader.data.get("pages", []))
                 # Создаём задачи
-                tasks[num_chapter] = {
+                tasks[num_chapter] = _AsyncDownloadTaskDict({
                     'pages_in_chapter': pages_in_chapter,
                     'tasks': [],
                     'results': None,
                     'succesed_pages': 0
-                }
+                })
                 # reversed, так как задачи выполняются последний пришёл - первый ушёл,
                 # а нам надо по порядку
                 for page_downloader in reversed(chapter_downloader):
@@ -392,11 +410,12 @@ class Downloader(BaseDownloader):
                 tasks[num_chapter]['results'] = asyncio.gather(*(tasks[num_chapter]['tasks']))
             # Ожидание результатов
             for num_chapter, task in tasks.items():
-                results: list[int|None] = await task['results']
-                # Чистка результатов
-                task['succesed_pages'] = sum(1 for result in results if result is not None)
-                del task['results']
-                del task['tasks']
+                if task['results'] is not None:
+                    results: list[int|None] = await task['results']
+                    # Чистка результатов
+                    task['succesed_pages'] = sum(1 for result in results if result is not None)
+                    del task['results']
+                    del task['tasks']
 
         # Возврат следующей к скачиванию страницы
         for num_chapter, task in tasks.items():
@@ -435,10 +454,19 @@ class ChapterDownloader(Downloader):
             chapter=chapter,
             **kwargs
         )
+        if isinstance(volume, ChapterNumber):
+            volume = str(volume)
+        if isinstance(chapter, ChapterNumber):
+            chapter = str(chapter)
         self.data = await self._async_get_chapter_data(volume, chapter)
         return self
 
-    def _get_chapter_data(self, volume: str, chapter: str, use_async: bool=True) -> dict[str, Any]:
+    def _get_chapter_data(
+        self,
+        volume: str,
+        chapter: str,
+        use_async: bool=True
+    ) -> _ChapterDataDict:
         url = (
             f"{self._API_DOMAIN}"
             f"/api/manga/{self.comic_name}/chapter?number={chapter}&volume={volume}"
@@ -464,7 +492,7 @@ class ChapterDownloader(Downloader):
             raise ValueError(toast.get("message", ""), data)
         return data
 
-    async def _async_get_chapter_data(self, volume, chapter) -> dict[str, Any]:
+    async def _async_get_chapter_data(self, volume: str, chapter: str) -> _ChapterDataDict:
         url = (
             f"{self._API_DOMAIN}"
             f"/api/manga/{self.comic_name}/chapter?number={chapter}&volume={volume}"
@@ -514,7 +542,7 @@ class PageDownloader(BasePageDownloader, Downloader):
         volume: str|None = None,
         chapter: str|None = None,
         chapter_title: str|None = None,
-        data: dict[str, str|int]|None = None,
+        data: _PageDataDict|None = None,
         **kwargs
     ):
         super().__init__(page=page, **kwargs)
@@ -541,7 +569,7 @@ class PageDownloader(BasePageDownloader, Downloader):
                 chapter_title = ""
             self.chapter_title = chapter_title
 
-        self.data: dict[str, str|int]
+        self.data: _PageDataDict
         if data:
             self.data = data
         else:
